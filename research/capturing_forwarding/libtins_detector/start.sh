@@ -5,4 +5,4 @@ cd build
 
 cmake ../
 make
-./det ../detector.cfg
+sudo ./det ../detector.cfg

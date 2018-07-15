@@ -5,27 +5,34 @@ using namespace libconfig;
 
 Config config;
 
-Router::Router(std::string if_internal, std::string mac_internal) {
+Router::Router(std::string if_internal, std::string mac_internal, std::string if_external, std::string mac_external, std::string def_gw_mac)
+  : if_internal(if_internal), mac_internal(mac_internal), if_external(if_external), mac_external(mac_external), def_gw_mac(def_gw_mac) {
   // Pakete lesen
   SnifferConfiguration config;
   config.set_promisc_mode(false); // Ich bin router, also will ich nur pakete die an mich als def gw gesendet werden.
   config.set_immediate_mode(true); // Damit die packets nicht zwischengespeichert werden, sondern gleich zu mir kommen
 
   std::stringstream sStream;
-  sStream << "ether dst " << mac_internal;
+  sStream << "ether dst " << this->mac_internal;
   config.set_filter(sStream.str()); // Nur pakete die meine interne mac als destination haben werden abgefangen
 
-  std::cout << "Listening for incoming frames on interface " << if_internal << " - mac " << mac_internal << std::endl;
-
-  sniffer = new Sniffer(if_internal, config);
+  sniffer = new Sniffer(this->if_internal, config);
 }
 
 void Router::start() {
-  this->sniffer->sniff_loop(make_sniffer_handler(this, &Router::handle));
+  std::cout << "Listening for incoming frames on interface " << if_internal << " - mac " << mac_internal << std::endl;
+  std::cout << "Routing via " << if_external << " - mac " << mac_external << " to " << def_gw_mac << std::endl;
+  this->sniffer->sniff_loop(make_sniffer_handler(this, &Router::handleInternal));
 }
 
-bool Router::handle(PDU &pdu) {
+bool Router::handleInternal(PDU &pdu) {
     const EthernetII &eth_pdu = pdu.rfind_pdu<EthernetII>();
+
+    // Vorgehensweise:
+    // Ethernet PDU ändern...
+    // - source_addr = mac von outgoing if
+    // - dst_addr = mac von def gw
+    // ... und dann senden
 
     std::cout << eth_pdu.src_addr() << " -> "
          << eth_pdu.dst_addr() << std::endl;
@@ -54,11 +61,14 @@ int main(int argc, char **argv) {
       return EXIT_FAILURE;
     }
 
-    std::string if_internal;
-    std::string mac_internal;
+    std::string if_internal, mac_internal, if_external, mac_external, def_gw_mac;
     // Brauche zum starten den Config-Wert if_internal
-    if(config.lookupValue("if_internal", if_internal) && config.lookupValue("mac_internal", mac_internal)) {
-      Router router(if_internal, mac_internal);
+    if(config.lookupValue("if_internal", if_internal)
+      && config.lookupValue("mac_internal", mac_internal)
+      && config.lookupValue("if_external", if_external)
+      && config.lookupValue("mac_external", mac_external)
+      && config.lookupValue("def_gw_mac", def_gw_mac)) {
+      Router router(if_internal, mac_internal, if_external, mac_external, def_gw_mac);
       router.start();
     } else {
       std::cerr << "Not al required configuration parameters supplied!" << std::endl;

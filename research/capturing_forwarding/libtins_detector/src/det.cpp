@@ -9,28 +9,56 @@ Router::Router(std::string if_internal, std::string mac_internal, std::string if
   : if_internal(if_internal), mac_internal(mac_internal), if_external(if_external), mac_external(mac_external), def_gw_mac(def_gw_mac) {
 
   // Konfiguration für internal -> external
-  SnifferConfiguration config;
-  config.set_promisc_mode(false); // Ich bin router, also will ich nur pakete die an mich als def gw gesendet werden.
-  config.set_immediate_mode(true); // Damit die packets nicht zwischengespeichert werden, sondern gleich zu mir kommen
+  SnifferConfiguration config_internal;
+  config_internal.set_promisc_mode(false); // Ich bin router, also will ich nur pakete die an mich als def gw gesendet werden.
+  config_internal.set_immediate_mode(true); // Damit die packets nicht zwischengespeichert werden, sondern gleich zu mir kommen
 
   std::stringstream sStream;
   sStream << "ether dst " << this->mac_internal;
-  config.set_filter(sStream.str()); // Nur pakete die meine interne mac als destination haben werden abgefangen
+  config_internal.set_filter(sStream.str()); // Nur pakete die meine interne mac als destination haben werden abgefangen
+  std::cout << "Internal filter: " << sStream.str() << std::endl;
 
-  sniffer = new Sniffer(this->if_internal, config);
+  this->internal_sniffer = new Sniffer(this->if_internal, config_internal);
 
   // Outgoing sender
   NetworkInterface outgoing_interface(if_external);
   this->outgoing_sender.default_interface(outgoing_interface);
 
 
+  // Konfiguration für external -> internal
+  SnifferConfiguration config_external;
+  config_external.set_promisc_mode(false);
+  config_external.set_immediate_mode(true);
+
+  sStream.str(std::string(""));
+  sStream << "ether dst " << this->mac_external;
+  config_external.set_filter(sStream.str());
+  std::cout << "External filter: " << sStream.str() << std::endl;
+
+  this->external_sniffer = new Sniffer(this->if_external, config_external);
+
+
+}
+
+/** start external to internal routing */
+void start_ext_to_int(Sniffer *sniffer, Router *router) {
+  std::cout << "Starting ext_to_int" << std::endl;
+  //sniffer->sniff_loop(make_sniffer_handler(router, &Router::handleExternal));
+}
+
+/** starts internal to external routing */
+void start_int_to_ext(Sniffer *sniffer, Router *router) {
+  std::cout << "Starting int_to_ext" << std::endl;
+  sniffer->sniff_loop(make_sniffer_handler(router, &Router::handleInternal));
 }
 
 void Router::start() {
   std::cout << "Listening for incoming frames on interface " << if_internal << " - mac " << mac_internal << std::endl;
   std::cout << "Routing via " << if_external << " - mac " << mac_external << " to " << def_gw_mac << std::endl;
-  this->sniffer->sniff_loop(make_sniffer_handler(this, &Router::handleInternal));
-  std::cout << "end of sniff loop";
+  // Extern zu intern (läuft in neuem thread)
+  std::thread ext_to_int_thread(start_ext_to_int, this->external_sniffer, this);
+  // Intern zu extern
+  start_int_to_ext(this->internal_sniffer, this);
 }
 
 bool Router::handleInternal(PDU &pdu) {

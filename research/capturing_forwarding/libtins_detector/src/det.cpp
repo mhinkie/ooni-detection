@@ -43,7 +43,7 @@ Router::Router(std::string if_internal, std::string mac_internal, std::string if
 /** start external to internal routing */
 void start_ext_to_int(Sniffer *sniffer, Router *router) {
   std::cout << "Starting ext_to_int" << std::endl;
-  //sniffer->sniff_loop(make_sniffer_handler(router, &Router::handleExternal));
+  sniffer->sniff_loop(make_sniffer_handler(router, &Router::handleExternal));
 }
 
 /** starts internal to external routing */
@@ -59,6 +59,19 @@ void Router::start() {
   std::thread ext_to_int_thread(start_ext_to_int, this->external_sniffer, this);
   // Intern zu extern
   start_int_to_ext(this->internal_sniffer, this);
+}
+
+bool Router::handleExternal(PDU &pdu) {
+  EthernetII &eth_pdu = pdu.rfind_pdu<EthernetII>();
+
+  // Vorgehensweise:
+  // Ethernet PDU ändern...
+  // - source_addr = mac von outgoing if
+  // - dst_addr = mac von def gw
+  // ... und dann senden
+
+  std::cout << "ext_to_int: " << eth_pdu.src_addr() << " -> "
+       << eth_pdu.dst_addr();
 }
 
 bool Router::handleInternal(PDU &pdu) {

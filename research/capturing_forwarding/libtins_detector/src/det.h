@@ -20,6 +20,7 @@ public:
   void start();
   /** Handles packets from inside to outside */
   bool handleInternal(Tins::PDU&);
+  //bool handleExternal(Tins::PDU&);
 };
 
 

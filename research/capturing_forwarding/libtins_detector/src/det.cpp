@@ -30,6 +30,7 @@ void Router::start() {
   std::cout << "Listening for incoming frames on interface " << if_internal << " - mac " << mac_internal << std::endl;
   std::cout << "Routing via " << if_external << " - mac " << mac_external << " to " << def_gw_mac << std::endl;
   this->sniffer->sniff_loop(make_sniffer_handler(this, &Router::handleInternal));
+  std::cout << "end of sniff loop";
 }
 
 bool Router::handleInternal(PDU &pdu) {

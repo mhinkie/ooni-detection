@@ -7,7 +7,8 @@ Config config;
 
 Router::Router(std::string if_internal, std::string mac_internal, std::string if_external, std::string mac_external, std::string def_gw_mac)
   : if_internal(if_internal), mac_internal(mac_internal), if_external(if_external), mac_external(mac_external), def_gw_mac(def_gw_mac) {
-  // Pakete lesen
+
+  // Konfiguration für internal -> external
   SnifferConfiguration config;
   config.set_promisc_mode(false); // Ich bin router, also will ich nur pakete die an mich als def gw gesendet werden.
   config.set_immediate_mode(true); // Damit die packets nicht zwischengespeichert werden, sondern gleich zu mir kommen
@@ -17,6 +18,12 @@ Router::Router(std::string if_internal, std::string mac_internal, std::string if
   config.set_filter(sStream.str()); // Nur pakete die meine interne mac als destination haben werden abgefangen
 
   sniffer = new Sniffer(this->if_internal, config);
+
+  // Outgoing sender
+  NetworkInterface outgoing_interface(if_external);
+  this->outgoing_sender.default_interface(outgoing_interface);
+
+
 }
 
 void Router::start() {
@@ -26,7 +33,7 @@ void Router::start() {
 }
 
 bool Router::handleInternal(PDU &pdu) {
-    const EthernetII &eth_pdu = pdu.rfind_pdu<EthernetII>();
+    EthernetII &eth_pdu = pdu.rfind_pdu<EthernetII>();
 
     // Vorgehensweise:
     // Ethernet PDU ändern...
@@ -35,10 +42,15 @@ bool Router::handleInternal(PDU &pdu) {
     // ... und dann senden
 
     std::cout << eth_pdu.src_addr() << " -> "
-         << eth_pdu.dst_addr() << std::endl;
+         << eth_pdu.dst_addr();
 
     // Paketweiterleitung:
+    eth_pdu.src_addr(this->mac_external);
+    eth_pdu.dst_addr(this->def_gw_mac);
 
+    outgoing_sender.send(eth_pdu);
+
+    std::cout << " == Sent packet to default gateway" << std::endl;
 
     return true;
 }

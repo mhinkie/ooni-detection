@@ -7,11 +7,7 @@ Config config;
 
 bool callback(const PDU &pdu) {
     const EthernetII &eth_pdu = pdu.rfind_pdu<EthernetII>();
-
-    // Es interessieren mich nur pakete, die an mich selbst adressiert sind (= dest. mac muss meine sein)
-    // Ansonsten würde ich gesendete auch bekommen
-
-
+    
     std::cout << eth_pdu.src_addr() << " -> "
          << eth_pdu.dst_addr() << std::endl;
     return true;
@@ -46,7 +42,9 @@ int main(int argc, char **argv) {
 
       std::stringstream sStream;
       sStream << "ether dst " << mac_internal;
-      config.set_filter(sStream.str());
+      config.set_filter(sStream.str()); // Nur pakete die meine interne mac als destination haben werden abgefangen
+
+      std::cout << "Listening for incoming frames on interface " << if_internal << " - mac " << mac_internal << std::endl;
 
       Sniffer sniffer(if_internal, config);
       sniffer.sniff_loop(callback);

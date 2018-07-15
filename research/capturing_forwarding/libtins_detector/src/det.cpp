@@ -5,11 +5,34 @@ using namespace libconfig;
 
 Config config;
 
-bool callback(const PDU &pdu) {
+Router::Router(std::string if_internal, std::string mac_internal) {
+  // Pakete lesen
+  SnifferConfiguration config;
+  config.set_promisc_mode(false); // Ich bin router, also will ich nur pakete die an mich als def gw gesendet werden.
+  config.set_immediate_mode(true); // Damit die packets nicht zwischengespeichert werden, sondern gleich zu mir kommen
+
+  std::stringstream sStream;
+  sStream << "ether dst " << mac_internal;
+  config.set_filter(sStream.str()); // Nur pakete die meine interne mac als destination haben werden abgefangen
+
+  std::cout << "Listening for incoming frames on interface " << if_internal << " - mac " << mac_internal << std::endl;
+
+  sniffer = new Sniffer(if_internal, config);
+}
+
+void Router::start() {
+  this->sniffer->sniff_loop(make_sniffer_handler(this, &Router::handle));
+}
+
+bool Router::handle(PDU &pdu) {
     const EthernetII &eth_pdu = pdu.rfind_pdu<EthernetII>();
-    
+
     std::cout << eth_pdu.src_addr() << " -> "
          << eth_pdu.dst_addr() << std::endl;
+
+    // Paketweiterleitung:
+
+
     return true;
 }
 
@@ -35,19 +58,8 @@ int main(int argc, char **argv) {
     std::string mac_internal;
     // Brauche zum starten den Config-Wert if_internal
     if(config.lookupValue("if_internal", if_internal) && config.lookupValue("mac_internal", mac_internal)) {
-      // Pakete lesen
-      SnifferConfiguration config;
-      config.set_promisc_mode(false); // Ich bin router, also will ich nur pakete die an mich als def gw gesendet werden.
-      config.set_immediate_mode(true); // Damit die packets nicht zwischengespeichert werden, sondern gleich zu mir kommen
-
-      std::stringstream sStream;
-      sStream << "ether dst " << mac_internal;
-      config.set_filter(sStream.str()); // Nur pakete die meine interne mac als destination haben werden abgefangen
-
-      std::cout << "Listening for incoming frames on interface " << if_internal << " - mac " << mac_internal << std::endl;
-
-      Sniffer sniffer(if_internal, config);
-      sniffer.sniff_loop(callback);
+      Router router(if_internal, mac_internal);
+      router.start();
     } else {
       std::cerr << "Not al required configuration parameters supplied!" << std::endl;
     }

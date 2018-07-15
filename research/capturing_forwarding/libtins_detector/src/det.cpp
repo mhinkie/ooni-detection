@@ -30,13 +30,18 @@ int main(int argc, char **argv) {
       return EXIT_FAILURE;
     }
 
-
-    // Pakete lesen
-    SnifferConfiguration config;
-    config.set_promisc_mode(false); // Ich bin router, also will ich nur pakete die an mich als def gw gesendet werden.
-    config.set_immediate_mode(true); // Damit die packets nicht zwischengespeichert werden, sondern gleich zu mir kommen
-    Sniffer sniffer("wlx2824ff1a05f9", config);
-    sniffer.sniff_loop(callback);
+    std::string if_internal;
+    // Brauche zum starten den Config-Wert if_internal
+    if(config.lookupValue("if_internal", if_internal)) {
+      // Pakete lesen
+      SnifferConfiguration config;
+      config.set_promisc_mode(false); // Ich bin router, also will ich nur pakete die an mich als def gw gesendet werden.
+      config.set_immediate_mode(true); // Damit die packets nicht zwischengespeichert werden, sondern gleich zu mir kommen
+      Sniffer sniffer(if_internal, config);
+      sniffer.sniff_loop(callback);
+    } else {
+      std::cerr << "No if_internal value supplied!" << std::endl;
+    }
 
     return 0;
 }

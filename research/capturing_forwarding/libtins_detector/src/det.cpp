@@ -1,4 +1,4 @@
-  #include "det.h"
+#include "det.h"
 
 using namespace Tins;
 using namespace libconfig;
@@ -7,6 +7,11 @@ Config config;
 
 bool callback(const PDU &pdu) {
     const EthernetII &eth_pdu = pdu.rfind_pdu<EthernetII>();
+
+    // Es interessieren mich nur pakete, die an mich selbst adressiert sind (= dest. mac muss meine sein)
+    // Ansonsten würde ich gesendete auch bekommen
+
+
     std::cout << eth_pdu.src_addr() << " -> "
          << eth_pdu.dst_addr() << std::endl;
     return true;
@@ -31,16 +36,22 @@ int main(int argc, char **argv) {
     }
 
     std::string if_internal;
+    std::string mac_internal;
     // Brauche zum starten den Config-Wert if_internal
-    if(config.lookupValue("if_internal", if_internal)) {
+    if(config.lookupValue("if_internal", if_internal) && config.lookupValue("mac_internal", mac_internal)) {
       // Pakete lesen
       SnifferConfiguration config;
       config.set_promisc_mode(false); // Ich bin router, also will ich nur pakete die an mich als def gw gesendet werden.
       config.set_immediate_mode(true); // Damit die packets nicht zwischengespeichert werden, sondern gleich zu mir kommen
+
+      std::stringstream sStream;
+      sStream << "ether dst " << mac_internal;
+      config.set_filter(sStream.str());
+
       Sniffer sniffer(if_internal, config);
       sniffer.sniff_loop(callback);
     } else {
-      std::cerr << "No if_internal value supplied!" << std::endl;
+      std::cerr << "Not al required configuration parameters supplied!" << std::endl;
     }
 
     return 0;

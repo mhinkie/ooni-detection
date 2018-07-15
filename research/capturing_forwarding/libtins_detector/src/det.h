@@ -5,6 +5,8 @@
 #include <libconfig.h++>
 #include <iostream>
 #include <tins/tins.h>
+#include <sstream>
+#include <string>
 
 
 #endif

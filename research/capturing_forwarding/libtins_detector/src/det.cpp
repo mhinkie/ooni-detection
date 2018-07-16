@@ -5,8 +5,14 @@ using namespace libconfig;
 
 Config config;
 
-Router::Router(std::string if_internal, std::string mac_internal, std::string if_external, std::string mac_external, std::string def_gw_mac, std::string dst_network)
-  : if_internal(if_internal), mac_internal(mac_internal), if_external(if_external), mac_external(mac_external), def_gw_mac(def_gw_mac) {
+Router::Router(std::string if_internal,
+  std::string mac_internal,
+  std::string if_external,
+  std::string mac_external,
+  std::string def_gw_mac,
+  std::string dst_network,
+  std::string host_mac)
+  : if_internal(if_internal), mac_internal(mac_internal), if_external(if_external), mac_external(mac_external), def_gw_mac(def_gw_mac), host_mac(host_mac) {
 
   // config for internal -> external
   SnifferConfiguration config_internal;
@@ -39,6 +45,8 @@ Router::Router(std::string if_internal, std::string mac_internal, std::string if
   this->external_sniffer = new Sniffer(this->if_external, config_external);
 
   // Incoming sender (ext_to_int) is already intialized
+  NetworkInterface incoming_interface(if_internal);
+  this->incoming_sender.default_interface(incoming_interface);
 }
 
 /** start external to internal routing */
@@ -75,26 +83,24 @@ void outputPDU(PDU *pdu) {
 bool Router::handleExternal(PDU &pdu) {
   EthernetII &eth_pdu = pdu.rfind_pdu<EthernetII>();
 
-  // only send the ip pdu: the kernel will create an appropriate ethernet pdu
+  // Routing is done manually, because handling of IP-Pakets causes problems with MTU size
 
   std::cout << "ext_to_int: " << eth_pdu.src_addr() << " -> "
        << eth_pdu.dst_addr();
 
-  std::cout << " (ethernet size: " << eth_pdu.size();
-
-  // get the inner pdu (i am now responsible for deleting it entirely)
-  // Wrapping in unique_ptr to release it
-  std::unique_ptr<IP> ip_pdu((IP*)(eth_pdu.release_inner_pdu()));
-
-  std::cout << " ip size: " << (*ip_pdu).size() << ")";
+  // Routing:
+  // Source = own mac
+  // Destination = left empty
+  eth_pdu.src_addr(this->mac_internal);
+  eth_pdu.dst_addr(this->host_mac);
 
   try {
     // Only send ip pdu
-    this->incoming_sender.send(*ip_pdu);
-    std::cout << " == Sent packet to " << (*ip_pdu).dst_addr() << std::endl;
+    this->incoming_sender.send(eth_pdu);
+    std::cout << " == Sent packet to " << (eth_pdu).dst_addr() << std::endl;
   } catch(socket_write_error err) {
-    std::cerr << " !!!! Write error on ext_to_int - destination " << (*ip_pdu).dst_addr() << " ";
-    outputPDU(ip_pdu.get());
+    std::cerr << " !!!! Write error on ext_to_int '" << err.what() << "' size: " << eth_pdu.size() << " - destination " << (eth_pdu).dst_addr() << " ";
+    outputPDU(&eth_pdu);
     std::cerr << std::endl;
   }
 
@@ -119,7 +125,7 @@ bool Router::handleInternal(PDU &pdu) {
       outgoing_sender.send(eth_pdu);
       std::cout << " == Sent packet to default gateway (l2 size: " << eth_pdu.size() << ")" << std::endl;
     } catch(socket_write_error err) {
-      std::cerr << " !!!! Write error on int_to_ext";
+      std::cerr << " !!!! Write error on int_to_ext '" << err.what() << "' size: " << eth_pdu.size() << " ";
       outputPDU(&eth_pdu);
       std::cerr << std::endl;
     }
@@ -144,15 +150,16 @@ int main(int argc, char **argv) {
       return EXIT_FAILURE;
     }
 
-    std::string if_internal, mac_internal, if_external, mac_external, def_gw_mac, dst_network;
+    std::string if_internal, mac_internal, if_external, mac_external, def_gw_mac, dst_network, host_mac;
     // check for configuration values
     if(config.lookupValue("if_internal", if_internal)
       && config.lookupValue("mac_internal", mac_internal)
       && config.lookupValue("if_external", if_external)
       && config.lookupValue("mac_external", mac_external)
       && config.lookupValue("def_gw_mac", def_gw_mac)
-      && config.lookupValue("dst_network", dst_network)) {
-      Router router(if_internal, mac_internal, if_external, mac_external, def_gw_mac, dst_network);
+      && config.lookupValue("dst_network", dst_network)
+      && config.lookupValue("host_mac", host_mac)) {
+      Router router(if_internal, mac_internal, if_external, mac_external, def_gw_mac, dst_network, host_mac);
       router.start();
     } else {
       std::cerr << "Not al required configuration parameters supplied!" << std::endl;

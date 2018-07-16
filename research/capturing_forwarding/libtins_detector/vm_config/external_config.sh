@@ -4,3 +4,5 @@
 ip addr add 192.168.56.101/24 dev enp0s3
 route add default gw 192.168.56.1 enp0s3
 echo "nameserver 8.8.8.8" | tee /etc/resolv.conf
+#allow jumbo frames
+ifconfig enp0s3 mtu 9000

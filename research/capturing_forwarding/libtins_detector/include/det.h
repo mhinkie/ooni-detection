@@ -15,9 +15,9 @@
 class Router {
   std::string if_internal, mac_internal, if_external, mac_external, def_gw_mac;
   Tins::Sniffer *internal_sniffer, *external_sniffer;
-  Tins::PacketSender outgoing_sender;
+  Tins::PacketSender outgoing_sender, incoming_sender;
 public:
-  Router(std::string if_internal, std::string mac_internal, std::string if_external, std::string mac_external, std::string def_gw_mac);
+  Router(std::string if_internal, std::string mac_internal, std::string if_external, std::string mac_external, std::string def_gw_mac, std::string dst_network);
   void start();
   /** Handles packets from inside to outside */
   bool handleInternal(Tins::PDU&);

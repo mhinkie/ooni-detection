@@ -7,7 +7,11 @@ VM_IP=192.168.56.101
 VM_USER=oonid
 DEPLOY_PATH=deploy/libtins_detector
 
+echo "copying files"
 scp -r * ${VM_USER}@${VM_IP}:${DEPLOY_PATH}
+echo
+echo
 
+echo "running startscript"
 #https://stackoverflow.com/questions/305035/how-to-use-ssh-to-run-a-shell-script-on-a-remote-machine
 ssh root@${VM_IP} "bash -s" < start_on_oonid.sh

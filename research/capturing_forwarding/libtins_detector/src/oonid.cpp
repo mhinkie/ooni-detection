@@ -7,6 +7,7 @@
 #include "det_dns.h"
 
 #include <libconfig.h++>
+#include <iostream>
 
 using namespace Tins;
 using namespace libconfig;

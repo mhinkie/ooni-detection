@@ -4,12 +4,8 @@
 #ifndef ROUTER_H
 #define ROUTER_H
 
-#include <libconfig.h++>
-#include <iostream>
 #include <tins/tins.h>
-#include <sstream>
 #include <string>
-#include <thread>
 #include "det.h"
 
 /**

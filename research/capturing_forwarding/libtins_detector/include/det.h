@@ -1,28 +1,18 @@
+/*
+ * Detector class
+ * A detector is an object which provides a function to accept pdus,
+ * and decide if they should be forwarded or not
+ */
+
 #ifndef DET_H
 #define DET_H
-/* configuration.h: Management of configuration instance */
 
-#include <libconfig.h++>
-#include <iostream>
 #include <tins/tins.h>
-#include <sstream>
-#include <string>
-#include <thread>
 
-/**
- * Router object is responsible of accepting pakets and routing them to the default gateway
- */
-class Router {
-  std::string if_internal, mac_internal, if_external, mac_external, def_gw_mac, host_mac;
-  Tins::Sniffer *internal_sniffer, *external_sniffer;
-  Tins::PacketSender outgoing_sender, incoming_sender;
+class Detector {
 public:
-  Router(std::string if_internal, std::string mac_internal, std::string if_external, std::string mac_external, std::string def_gw_mac, std::string dst_network, std::string host_mac);
-  void start();
-  /** Handles packets from inside to outside */
-  bool handleInternal(Tins::PDU&);
-  bool handleExternal(Tins::PDU&);
+  /** Accepts a PDU and decides if it should be forwarded or not */
+  virtual bool process(const Tins::PDU &pdu) = 0;
 };
-
 
 #endif

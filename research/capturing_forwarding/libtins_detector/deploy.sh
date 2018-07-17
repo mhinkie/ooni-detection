@@ -6,7 +6,10 @@
 VM_IP=192.168.56.101
 VM_USER=oonid
 DEPLOY_PATH=deploy/libtins_detector
+OONID_HOME=/home/oonid/
 
+#delete everything as root (because build dir is filled with root)
+ssh root@${VM_IP} "cd ${OONID_HOME}${DEPLOY_PATH}; rm -rf *"
 echo "copying files"
 scp -r * ${VM_USER}@${VM_IP}:${DEPLOY_PATH}
 echo

@@ -1,9 +1,11 @@
-#include "det.h"
+#include "router.h"
+
+
+#include <thread>
+#include <sstream>
+#include <iostream>
 
 using namespace Tins;
-using namespace libconfig;
-
-Config config;
 
 Router::Router(std::string if_internal,
   std::string mac_internal,
@@ -11,8 +13,9 @@ Router::Router(std::string if_internal,
   std::string mac_external,
   std::string def_gw_mac,
   std::string dst_network,
-  std::string host_mac)
-  : if_internal(if_internal), mac_internal(mac_internal), if_external(if_external), mac_external(mac_external), def_gw_mac(def_gw_mac), host_mac(host_mac) {
+  std::string host_mac,
+  Detector *detector)
+  : if_internal(if_internal), mac_internal(mac_internal), if_external(if_external), mac_external(mac_external), def_gw_mac(def_gw_mac), host_mac(host_mac), detector(detector) {
 
   // config for internal -> external
   SnifferConfiguration config_internal;
@@ -121,49 +124,18 @@ bool Router::handleInternal(PDU &pdu) {
     eth_pdu.src_addr(this->mac_external);
     eth_pdu.dst_addr(this->def_gw_mac);
 
-    try {
-      outgoing_sender.send(eth_pdu);
-      std::cout << " == Sent packet to default gateway (l2 size: " << eth_pdu.size() << ")" << std::endl;
-    } catch(socket_write_error err) {
-      std::cerr << " !!!! Write error on int_to_ext '" << err.what() << "' size: " << eth_pdu.size() << " ";
-      outputPDU(&eth_pdu);
-      std::cerr << std::endl;
+    if(this->detector == NULL || this->detector->process(eth_pdu)) {
+      try {
+        outgoing_sender.send(eth_pdu);
+        std::cout << " == Sent packet to default gateway (l2 size: " << eth_pdu.size() << ")" << std::endl;
+      } catch(socket_write_error err) {
+        std::cerr << " !!!! Write error on int_to_ext '" << err.what() << "' size: " << eth_pdu.size() << " ";
+        outputPDU(&eth_pdu);
+        std::cerr << std::endl;
+      }
+    } else {
+      std::cerr << "Detector rejected packet" << std::endl;
     }
 
     return true;
-}
-
-int main(int argc, char **argv) {
-    if(argc < 2) {
-      std::cerr << "No configuration file given!" << std::endl;
-      return EXIT_FAILURE;
-    }
-    try {
-      config.readFile(argv[1]);
-    } catch(const FileIOException &fioex) {
-      std::cerr << "Cannot read configuration file" << std::endl;
-      return EXIT_FAILURE;
-    }
-    catch(const ParseException &pex) {
-      std::cerr << "Error parsing configuration file " << pex.getFile() << ":" << pex.getLine()
-                << " - " << pex.getError() << std::endl;
-      return EXIT_FAILURE;
-    }
-
-    std::string if_internal, mac_internal, if_external, mac_external, def_gw_mac, dst_network, host_mac;
-    // check for configuration values
-    if(config.lookupValue("if_internal", if_internal)
-      && config.lookupValue("mac_internal", mac_internal)
-      && config.lookupValue("if_external", if_external)
-      && config.lookupValue("mac_external", mac_external)
-      && config.lookupValue("def_gw_mac", def_gw_mac)
-      && config.lookupValue("dst_network", dst_network)
-      && config.lookupValue("host_mac", host_mac)) {
-      Router router(if_internal, mac_internal, if_external, mac_external, def_gw_mac, dst_network, host_mac);
-      router.start();
-    } else {
-      std::cerr << "Not al required configuration parameters supplied!" << std::endl;
-    }
-
-    return 0;
 }

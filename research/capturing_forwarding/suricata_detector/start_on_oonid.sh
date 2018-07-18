@@ -1,7 +1,9 @@
 #!/bin/bash
 #script to configure and start detector
-
 FRULES=/etc/suricata/rules/suri.rules
+
+killall /usr/bin/suricata
+killall /usr/bin/tail
 
 cd /home/oonid/deploy/suricata_detector
 
@@ -26,4 +28,5 @@ done
 echo
 echo
 echo "starting suricata..."
+tail -f /var/log/suricata/fast.log &
 suricata -v -c /etc/suricata/suricata.yaml -i enp0s8 --init-errors-fatal

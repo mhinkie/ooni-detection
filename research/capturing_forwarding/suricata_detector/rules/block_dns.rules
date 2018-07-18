@@ -1,0 +1,1 @@
+alert udp $HOME_NET any -> $EXTERNAL_NET 53

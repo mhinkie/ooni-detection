@@ -29,4 +29,5 @@ echo
 echo
 echo "starting suricata..."
 tail -f /var/log/suricata/fast.log &
-suricata -v -c /etc/suricata/suricata.yaml -i enp0s8 --init-errors-fatal
+# -q 0 tells suricata to listen for nfqueue 0
+suricata -v -c /etc/suricata/suricata.yaml -q 0 --init-errors-fatal

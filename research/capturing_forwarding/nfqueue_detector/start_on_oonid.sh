@@ -1,5 +1,6 @@
 #!/bin/bash
 #script to configure and start detector
+#requires libnfnetlink libmnl and libnetfilter_queue
 
 echo "Killing old detectors"
 killall det

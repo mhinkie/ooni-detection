@@ -9,6 +9,17 @@ include_directories(include)
 
 file(GLOB SOURCES "src/*.cpp")
 
+find_library(NFNETLINK nfnetlink)
+if(NOT NFNETLINK)
+  message(FATAL_ERROR "nfnetlink not installed")
+endif()
+
+find_library(NETFILTER_QUEUE netfilter_queue)
+if(NOT NETFILTER_QUEUE)
+  message(FATAL_ERROR "netfilter_queue not installed")
+endif()
+
+
 add_executable(det ${SOURCES})
 
 #config file library

@@ -30,4 +30,4 @@ make
 echo
 echo
 echo "Starting detector..."
-./det
+./det 0

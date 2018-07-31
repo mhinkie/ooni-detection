@@ -24,5 +24,6 @@ add_executable(det ${SOURCES})
 
 #config file library
 #target_link_libraries(det config++)
-#threads
-#target_link_libraries(det ${CMAKE_THREAD_LIBS_INIT})
+
+#nfqueue
+target_link_libraries(det netfilter_queue)

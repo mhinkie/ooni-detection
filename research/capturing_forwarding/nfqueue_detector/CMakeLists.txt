@@ -7,7 +7,7 @@ project(nfqueue_detector C CXX)
 
 include_directories(include)
 
-file(GLOB SOURCES "src/*.cpp")
+file(GLOB_RECURSE SOURCES src/*.cpp)
 
 find_library(NFNETLINK nfnetlink)
 if(NOT NFNETLINK)

@@ -5,6 +5,7 @@
 #include <string>
 #include <netinet/in.h>
 #include <linux/netfilter.h>
+#include "queue/accept_all.h"
 
 #define DEFAULT_POLICY NF_ACCEPT
 
@@ -62,15 +63,6 @@ NFQueue::~NFQueue() {
   nfq_close(this->handle);
 }
 
-int NFQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) {
-  // accepting all
-  std::cout << "accepting" << std::endl;
-
-  struct nfqnl_msg_packet_hdr *ph;
-  ph = nfq_get_msg_packet_hdr(nfad);
-  u_int32_t id = ntohl(ph->packet_id);
-  return nfq_set_verdict(queue, id, NF_ACCEPT, 0, NULL);
-}
 
 void NFQueue::start() {
   char buffer[4096] __attribute__ ((aligned));
@@ -99,7 +91,7 @@ int main(int argc, char **argv) {
 
   try {
     int queue_number = std::stoi(argv[1]);
-    NFQueue q(queue_number);
+    AcceptAllQueue q(queue_number);
 
     // Start processing
     q.start();

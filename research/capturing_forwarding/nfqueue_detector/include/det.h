@@ -23,6 +23,8 @@ public:
 
   /** Handles packets (issues verdicts) for this queue */
   int handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad);
+  /** Starts processing */
+  void start();
 };
 
 #endif

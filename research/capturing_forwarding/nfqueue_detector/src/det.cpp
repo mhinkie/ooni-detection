@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 #include <netinet/in.h>
-#include <linux/netfilter.h>	
+#include <linux/netfilter.h>
 
 /**
  * A pointer to the wrapper should be passed to the callback funtion
@@ -35,10 +35,24 @@ NFQueue::NFQueue(int queue_number) {
   /* the NFQueue Object will be passed to the callback funtion so the general
   callback function (global_callback) can call the callback function associated with the queue */
   this->queue = nfq_create_queue(this->handle, queue_number, &global_callback, this);
+  if(this->queue == NULL) {
+    throw std::runtime_error("error creating queue");
+  }
+  std::cout << "Created queue " << queue_number << std::endl;
+
+  // The whole packets should be copied to user space
+	if(nfq_set_mode(this->queue, NFQNL_COPY_PACKET, 0xffff) < 0) {
+    throw std::runtime_error("error setting packet copy mode");
+  }
+
+
 }
 
 NFQueue::~NFQueue() {
   std::cout << "Deleting nfqueue" << std::endl;
+
+  nfq_destroy_queue(this->queue);
+
   nfq_close(this->handle);
 }
 
@@ -52,6 +66,22 @@ int NFQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, stru
   return nfq_set_verdict(queue, id, NF_ACCEPT, 0, NULL);
 }
 
+void NFQueue::start() {
+  char buffer[4096] __attribute__ ((aligned));
+
+  // File descriptor for nfqueue handle
+  int fd = nfq_fd(this->handle);
+
+  // received packet size
+  int rsize = -1;
+  // receive loop
+  while ((rsize = recv(fd, buffer, sizeof(buffer), 0)) && rsize >= 0) {
+		nfq_handle_packet(this->handle, buffer, rsize);
+  }
+
+  std::cout << "receive loop finished" << std::endl;
+}
+
 
 
 int main(int argc, char **argv) {
@@ -63,9 +93,14 @@ int main(int argc, char **argv) {
   try {
     int queue_number = std::stoi(argv[1]);
     NFQueue q(queue_number);
+
+    // Start processing
+    q.start();
   } catch(std::logic_error e) {
     std::cerr << "Invalid value for queue number: " << argv[1] << std::endl;
     return 1;
+  } catch(std::runtime_error e) {
+    std::cerr << e.what() << std::endl;
   }
 
   return 0;

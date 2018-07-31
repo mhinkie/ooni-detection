@@ -6,16 +6,22 @@
 #include <netinet/in.h>
 #include <linux/netfilter.h>
 
+#define DEFAULT_POLICY NF_ACCEPT
+
 /**
  * A pointer to the wrapper should be passed to the callback funtion
  */
 int global_callback(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad, void *wrapper) {
   if(wrapper == NULL) {
-    // if for some reason the wrapper is not supplied, the packet will be accepted
+    // if for some reason the wrapper is not supplied, default policy will be used
+    // i don't know if this can ever happen
     struct nfqnl_msg_packet_hdr *ph;
     ph = nfq_get_msg_packet_hdr(nfad);
     u_int32_t id = ntohl(ph->packet_id);
-    return nfq_set_verdict(queue, id, NF_ACCEPT, 0, NULL);
+
+    std::cout << "No queue object supplied - applying default policy" << std::endl;
+
+    return nfq_set_verdict(queue, id, DEFAULT_POLICY, 0, NULL);
   } else {
     return ((NFQueue*)wrapper)->handle_pkt(queue, nfmsg, nfad);
   }
@@ -76,6 +82,7 @@ void NFQueue::start() {
   int rsize = -1;
   // receive loop
   while ((rsize = recv(fd, buffer, sizeof(buffer), 0)) && rsize >= 0) {
+    // packet will be handled by netfilter_queue (and given to callback function)
 		nfq_handle_packet(this->handle, buffer, rsize);
   }
 

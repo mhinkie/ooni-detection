@@ -5,7 +5,7 @@
 #include <string>
 #include <netinet/in.h>
 #include <linux/netfilter.h>
-#include "queue/accept_all.h"
+#include "queue/deny_dns.h"
 
 #define DEFAULT_POLICY NF_ACCEPT
 
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
 
   try {
     int queue_number = std::stoi(argv[1]);
-    AcceptAllQueue q(queue_number);
+    DenyDnsQueue q(queue_number);
 
     // Start processing
     q.start();

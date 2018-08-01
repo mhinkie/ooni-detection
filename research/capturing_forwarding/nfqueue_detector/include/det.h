@@ -7,7 +7,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdint.h>
-#include <libnetfilter_queue/libnetfilter_queue.h>
+
+extern "C" {
+  #include <libnetfilter_queue/libnetfilter_queue.h>
+}
 
 /**
  * Wrapper for netfilter queue to support automatic destroy

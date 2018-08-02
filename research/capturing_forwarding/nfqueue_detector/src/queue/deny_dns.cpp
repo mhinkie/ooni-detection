@@ -5,10 +5,10 @@
 #include <linux/ip.h>
 #include <linux/netfilter.h>
 #include <arpa/inet.h>
+#include <tins/tins.h>
 
 extern "C" {
   #include <libnetfilter_queue/pktbuff.h>
-  #include <libnetfilter_queue/libnetfilter_queue_ipv4.h>
 }
 
 int DenyDnsQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) {
@@ -21,29 +21,16 @@ int DenyDnsQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg,
 
   std::cout << "got payload of size: " << psize << std::endl;
 
-  // put it into packet buffer
-  struct pkt_buff *packet = pktb_alloc(AF_INET, payload, psize, 0);
+  try {
+    /* Parse packet using tins */
+    Tins::IP ip_packet(payload, psize);
 
-  // get ip header
-  struct iphdr *ip_header = nfq_ip_get_hdr(packet);
-
-  if(ip_header == NULL) {
-    // Not an ip packet (or malformed)
-    // is allowed
+    std::cout << ip_packet.src_addr().to_string() << " -> " << ip_packet.dst_addr().to_string() << std::endl;
+  } catch(Tins::malformed_packet e) {
+    // this is not an ip packet - do not block
+    std::cout << "not an ip packet" << std::endl;
     verdict = NF_ACCEPT;
-  } else {
-    struct in_addr ip_src, ip_dst;
-    ip_src.s_addr = ip_header->saddr;
-    std::cout << "src addr set: " << inet_ntoa(ip_src) << std::endl;
-    ip_dst.s_addr = ip_header->daddr;
-    std::cout << "dst addr set: " << inet_ntoa(ip_dst) << std::endl;
-    /* the std::string constructor is necessary so the result of inet_ntoa will be saved somewhere.
-    inet_ntoa uses a static buffer, which would be overwritten on the second call */
-    std::cout << std::string(inet_ntoa(ip_src)) << " -> " << std::string(inet_ntoa(ip_dst)) << std::endl;
   }
-
-  // Packet buffer is not used anymore
-  pktb_free(packet);
 
   verdict = NF_ACCEPT;
 

@@ -27,3 +27,6 @@ add_executable(det ${SOURCES})
 
 #nfqueue
 target_link_libraries(det netfilter_queue)
+
+#libtins for parsing
+target_link_libraries(det tins)

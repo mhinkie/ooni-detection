@@ -11,29 +11,55 @@ extern "C" {
   #include <libnetfilter_queue/pktbuff.h>
 }
 
+using namespace Tins;
+
 int DenyDnsQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) {
   int verdict = NF_DROP;
 
   // Get payload of queue packet
   unsigned char *payload;
-  std::cout << "getting payload" << std::endl;
   int psize = nfq_get_payload(nfad, &payload);
 
   std::cout << "got payload of size: " << psize << std::endl;
 
   try {
     /* Parse packet using tins */
-    Tins::IP ip_packet(payload, psize);
+    IP ip_packet(payload, psize);
 
     std::cout << ip_packet.src_addr().to_string() << " -> " << ip_packet.dst_addr().to_string() << std::endl;
-  } catch(Tins::malformed_packet e) {
+
+    // check if udp - if yes try to parse as dns
+    // if that succees -> drop the packet
+    UDP *udp_packet = ip_packet.find_pdu<UDP>();
+    if(udp_packet == NULL) {
+      verdict = NF_ACCEPT;
+      std::cout << "not and udp packet" << std::endl;
+    } else {
+      // get the - at this point - unparsed, inner pdu
+      RawPDU *inner_pdu = udp_packet->find_pdu<RawPDU>();
+      if(inner_pdu == NULL) {
+        verdict = NF_ACCEPT;
+      } else {
+        try {
+          DNS dns_packet = inner_pdu->to<DNS>();
+
+          // converting succeeded - packet is dns - block it
+          verdict = NF_DROP;
+
+          std::cout << "blocking dns packet" << std::endl;
+        } catch(malformed_packet e) {
+          verdict = NF_ACCEPT;
+          std::cout << "not a dns packet" << std::endl;
+        }
+      }
+    }
+  } catch(malformed_packet e) {
     // this is not an ip packet - do not block
     std::cout << "not an ip packet" << std::endl;
     verdict = NF_ACCEPT;
   }
 
-  verdict = NF_ACCEPT;
-
+  // set verdict
   struct nfqnl_msg_packet_hdr *ph;
   ph = nfq_get_msg_packet_hdr(nfad);
   u_int32_t id = ntohl(ph->packet_id);

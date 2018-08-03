@@ -1,5 +1,5 @@
 # only alert if xbit is set for src
-pass ip $HOME_NET any -> 128.130.35.76 any (xbits: isset, probable_ooniprobe, track ip_src; sid:1;)
+#pass ip $HOME_NET any -> 128.130.35.76 any (xbits: isset, probable_ooniprobe, track ip_src; sid:1;)
 alert ip $HOME_NET any -> 128.130.35.76 any (msg:"We don't want traffic to TU - xbit is set - probably an ooniprobe"; classtype:bad-unknown; xbits: isset, probable_ooniprobe, track ip_src; sid:1;)
 
 # drop if xbit is not set for src

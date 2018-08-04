@@ -9,8 +9,6 @@ echo
 
 cd /home/oonid/deploy/nfqueue_detector/
 
-echo
-echo
 echo "Configuring interfaces..."
 #configure interfaces
 vm_config/reset_config.sh
@@ -20,14 +18,6 @@ vm_config/router_config.sh
 
 echo
 echo
-echo "Building..."
-mkdir -p build
-cd build
-rm -rf *
-cmake ../
-make
-
-echo
-echo
 echo "Starting detector..."
+cd build
 ./det 0

@@ -8,6 +8,15 @@ VM_USER=oonid
 DEPLOY_PATH=deploy/nfqueue_detector
 OONID_HOME=/home/oonid/
 
+#compile
+echo "compiling"
+cd build
+cmake ../
+make
+cd ..
+echo
+echo
+
 #delete everything as root (because build dir is filled with root)
 ssh root@${VM_IP} "cd ${OONID_HOME}${DEPLOY_PATH}; rm -rf *"
 echo "copying files"

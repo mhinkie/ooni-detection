@@ -1,10 +1,3 @@
-/**
- * OONI Detector implementation using iptables' nfqueue.
- * The NFQueue class can be extended to create packet filters. A NFQueue
- * has to provide a handle_pkt function which can parse the packet
- * and has to issue a verdict (DROP or ACCEPT) for each packet.
- */
-
 #ifndef DET_H
 #define DET_H
 
@@ -17,8 +10,10 @@ extern "C" {
 }
 
 /**
- * Wrapper for netfilter's queue to support automatic destroy and queue-specific callbacks.
- * @param queue_number Queue number for this queue.
+ * OONI Detector implementation using iptables' nfqueue.
+ * The NFQueue class can be extended to create packet filters. A NFQueue
+ * has to provide a handle_pkt function which can parse the packet
+ * and has to issue a verdict (DROP or ACCEPT) for each packet.
  */
 class NFQueue {
   /** general handle for nfqueue - has to be destroyed in destructor */
@@ -26,7 +21,15 @@ class NFQueue {
   /** handle for the actual queue - has to be destroyed in destructor */
   struct nfq_q_handle *queue;
 public:
+  /**
+   * Creates and initializes a new queue. The processing can be stated with start().
+   * @param queue_number Queue number for this queue.
+   */
   NFQueue(int queue_number);
+
+  /**
+   * Destroyes queue and releaseas all netfilter_queue resources.
+   */
   ~NFQueue();
 
   /**

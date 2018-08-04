@@ -9,6 +9,12 @@ extern "C" {
   #include <libnetfilter_queue/libnetfilter_queue.h>
 }
 
+#ifdef IS
+#define DEBUG(x) std::cout << x << std::endl
+#else
+#define DEBUG(x)
+#endif
+
 /**
  * OONI Detector implementation using iptables' nfqueue.
  * The NFQueue class can be extended to create packet filters. A NFQueue
@@ -30,7 +36,7 @@ public:
   /**
    * Destroyes queue and releaseas all netfilter_queue resources.
    */
-  ~NFQueue();
+  virtual ~NFQueue();
 
   /**
    * Handles packets (issues verdicts) for this queue. <br />

@@ -30,7 +30,7 @@ int global_callback(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct n
     ph = nfq_get_msg_packet_hdr(nfad);
     u_int32_t id = ntohl(ph->packet_id);
 
-    std::cout << "No queue object supplied - applying default policy" << std::endl;
+    DEBUG("No queue object supplied - applying default policy");
 
     return nfq_set_verdict(queue, id, DEFAULT_POLICY, 0, NULL);
   } else {
@@ -41,21 +41,21 @@ int global_callback(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct n
 
 
 NFQueue::NFQueue(int queue_number) {
-  std::cout << "Setting up nfqueue" << std::endl;
+  DEBUG("Setting up nfqueue");
 
   this->handle = nfq_open();
   if(this->handle == NULL) {
     throw std::runtime_error("error opening nfqueue handle");
   }
 
-  std::cout << "Trying to start nfqueue detector for queue " << queue_number << std::endl;
+  DEBUG("Trying to start nfqueue detector for queue " << queue_number);
   /* the NFQueue Object will be passed to the callback funtion so the general
   callback function (global_callback) can call the callback function associated with the queue */
   this->queue = nfq_create_queue(this->handle, queue_number, &global_callback, this);
   if(this->queue == NULL) {
     throw std::runtime_error("error creating queue");
   }
-  std::cout << "Created queue " << queue_number << std::endl;
+  DEBUG("Created queue " << queue_number);
 
   // The whole packets should be copied to user space
 	if(nfq_set_mode(this->queue, NFQNL_COPY_PACKET, 0xffff) < 0) {
@@ -66,7 +66,7 @@ NFQueue::NFQueue(int queue_number) {
 }
 
 NFQueue::~NFQueue() {
-  std::cout << "Deleting nfqueue" << std::endl;
+  DEBUG("Deleting nfqueue");
 
   nfq_destroy_queue(this->queue);
 
@@ -88,7 +88,7 @@ void NFQueue::start() {
 		nfq_handle_packet(this->handle, buffer, rsize);
   }
 
-  std::cout << "receive loop finished" << std::endl;
+  DEBUG("receive loop finished");
 }
 
 

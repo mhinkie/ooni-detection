@@ -20,7 +20,7 @@ int DenyDnsQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg,
   unsigned char *payload;
   int psize = nfq_get_payload(nfad, &payload);
 
-  std::cout << "got payload of size: " << psize << std::endl;
+  DEBUG("got payload of size: " << psize);
 
   try {
     /* Parse packet using tins */
@@ -33,7 +33,7 @@ int DenyDnsQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg,
     UDP *udp_packet = ip_packet.find_pdu<UDP>();
     if(udp_packet == NULL) {
       verdict = NF_ACCEPT;
-      std::cout << "not and udp packet" << std::endl;
+      DEBUG("not and udp packet");
     } else {
       // get the - at this point - unparsed, inner pdu
       RawPDU *inner_pdu = udp_packet->find_pdu<RawPDU>();
@@ -46,16 +46,16 @@ int DenyDnsQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg,
           // converting succeeded - packet is dns - block it
           verdict = NF_DROP;
 
-          std::cout << "blocking dns packet" << std::endl;
+          DEBUG("blocking dns packet");
         } catch(malformed_packet e) {
           verdict = NF_ACCEPT;
-          std::cout << "not a dns packet" << std::endl;
+          DEBUG("not a dns packet");
         }
       }
     }
   } catch(malformed_packet e) {
     // this is not an ip packet - do not block
-    std::cout << "not an ip packet" << std::endl;
+    DEBUG("not an ip packet");
     verdict = NF_ACCEPT;
   }
 

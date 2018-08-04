@@ -52,6 +52,7 @@ public:
    * @param queue_num [description]
    */
   StatusQueue(int queue_num) : NFQueue(queue_num) { }
+  virtual ~StatusQueue() { std::cout << "destroying status queue" << std::endl; }
   virtual int handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) = 0;
 
   /**

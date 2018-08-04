@@ -3,6 +3,9 @@
 cmake_minimum_required(VERSION 2.8)
 set (CMAKE_CXX_STANDARD 11)
 
+#debug flag
+set(CMAKE_C_FLAGS_DEBUG "-DISDEBUG")
+
 project(nfqueue_detector C CXX)
 
 include_directories(include)
@@ -40,3 +43,6 @@ target_link_libraries(det tins)
 #Boost
 target_link_libraries(det boost_thread)
 target_link_libraries(det boost_system)
+
+#dns
+target_link_libraries(det resolv)

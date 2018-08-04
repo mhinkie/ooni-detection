@@ -19,6 +19,12 @@ if(NOT NETFILTER_QUEUE)
   message(FATAL_ERROR "netfilter_queue not installed")
 endif()
 
+find_package(Boost)
+if(NOT Boost_FOUND)
+  message(FATAL_ERROR "boost not installed")
+endif()
+
+include_directories(${Boost_INCLUDE_DIRS})
 
 add_executable(det ${SOURCES})
 
@@ -30,3 +36,7 @@ target_link_libraries(det netfilter_queue)
 
 #libtins for parsing
 target_link_libraries(det tins)
+
+#Boost
+target_link_libraries(det boost_thread)
+target_link_libraries(det boost_system)

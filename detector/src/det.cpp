@@ -5,8 +5,7 @@
 #include <string>
 #include <netinet/in.h>
 #include <linux/netfilter.h>
-#include "queue/deny_dns.h"
-#include "queue/accept_all.h"
+#include "queue/detect_ooni/facebook_messenger.h"
 
 #define DEFAULT_POLICY NF_ACCEPT
 
@@ -102,7 +101,7 @@ int main(int argc, char **argv) {
 
   try {
     int queue_number = std::stoi(argv[1]);
-    AcceptAllQueue q(queue_number);
+    FBMessengerQueue q(queue_number);
 
     // Start processing
     q.start();

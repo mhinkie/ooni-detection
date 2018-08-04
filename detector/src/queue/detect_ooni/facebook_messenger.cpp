@@ -51,7 +51,7 @@ FBMessengerQueue::FBMessengerQueue(int queue_num) : StatusQueue(queue_num) {
   DEBUG("Resolved all facebook addresses");
 
   // OUTPUT
-#ifdef ISDEBUG
+#ifndef NDEBUG
   std::vector<Tins::IPv4Address *> addresses;
   addresses.assign(fb_servers, fb_servers + 5);
   for_each(addresses.begin(), addresses.end(), [](Tins::IPv4Address *addr) {std::cout << addr->to_string() << std::endl;});

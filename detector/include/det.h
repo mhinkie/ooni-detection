@@ -9,7 +9,7 @@ extern "C" {
   #include <libnetfilter_queue/libnetfilter_queue.h>
 }
 
-#ifdef IS
+#ifndef NDEBUG
 #define DEBUG(x) std::cout << x << std::endl
 #else
 #define DEBUG(x)

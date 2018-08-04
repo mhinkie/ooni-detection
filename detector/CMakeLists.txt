@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.8)
 set (CMAKE_CXX_STANDARD 11)
 
 #debug flag
-set(CMAKE_C_FLAGS_DEBUG "-DISDEBUG")
+SET( CMAKE_BUILD_TYPE Debug)
 
 project(nfqueue_detector C CXX)
 

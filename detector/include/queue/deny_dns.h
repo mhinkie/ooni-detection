@@ -1,11 +1,14 @@
 /**
- * Queue denying all dns
+ * Queue implementation, that denies all DNS packets.
  */
 #ifndef DENY_DNS_H
 #define DENY_DNS_H
 
 #include "det.h"
 
+/**
+ * Denies DNS Packets.
+ */
 class DenyDnsQueue : public NFQueue {
 public:
   DenyDnsQueue(int queue_num) : NFQueue(queue_num) { }

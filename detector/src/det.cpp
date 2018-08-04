@@ -11,7 +11,17 @@
 #define DEFAULT_POLICY NF_ACCEPT
 
 /**
- * A pointer to the wrapper should be passed to the callback funtion
+ * netfilter queue callback function. Function is called after a packet is processed
+ * by netfilter_queue
+ * (\link https://netfilter.org/projects/libnetfilter_queue/doxygen/html/group__Queue.html#ga79f250ddd7568c2aefbd163b03e4e28b create queue \endlink). <br />
+ * As additional data a pointer to the nfqueue wrapper is supplied. The callback function
+ * should call the wrappers own callback function (or accept the packet if no
+ * wrapper is supplied).
+ * @param  queue   pointer to netfilter queue-handle
+ * @param  nfmsg
+ * @param  nfad
+ * @param  wrapper The supplied wrapper object (NFQueue)
+ * @return
  */
 int global_callback(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad, void *wrapper) {
   if(wrapper == NULL) {

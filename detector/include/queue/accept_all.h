@@ -1,11 +1,14 @@
 /**
- * Queue implementation that accepts all packets
+ * Queue implementation that accepts all packets.
  */
 #ifndef ACCEPT_ALL_H
 #define ACCEPT_ALL_H
 
 #include "det.h"
 
+/**
+ * AcceptAllQueue accepts all packets without parsing.
+ */
 class AcceptAllQueue : public NFQueue {
 public:
   AcceptAllQueue(int queue_num) : NFQueue(queue_num) { }

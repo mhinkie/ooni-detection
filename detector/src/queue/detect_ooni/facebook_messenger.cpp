@@ -31,16 +31,6 @@ Tins::IPv4Address *get_address(const std::string &hostname) {
   }
 }
 
-int FBMessengerQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) {
-  // accepting all
-  std::cout << "accepting in fb queue" << std::endl;
-
-  struct nfqnl_msg_packet_hdr *ph;
-  ph = nfq_get_msg_packet_hdr(nfad);
-  u_int32_t id = ntohl(ph->packet_id);
-  return nfq_set_verdict(queue, id, NF_ACCEPT, 0, NULL);
-}
-
 FBMessengerQueue::FBMessengerQueue(int queue_num) : StatusQueue(queue_num) {
   fb_servers[0] = get_address("star.c10r.facebook.com");
   fb_servers[1] = get_address("b-graph.facebook.com");
@@ -53,7 +43,7 @@ FBMessengerQueue::FBMessengerQueue(int queue_num) : StatusQueue(queue_num) {
   // OUTPUT
 #ifndef NDEBUG
   std::vector<Tins::IPv4Address *> addresses;
-  addresses.assign(fb_servers, fb_servers + 5);
+  addresses.assign(std::begin(fb_servers), std::end(fb_servers));
   for_each(addresses.begin(), addresses.end(), [](Tins::IPv4Address *addr) {std::cout << addr->to_string() << std::endl;});
 #endif
 }
@@ -65,4 +55,20 @@ FBMessengerQueue::~FBMessengerQueue() {
   for(int i=0;i<5;i++) {
     delete this->fb_servers[i];
   }
+}
+
+int FBMessengerQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) {
+  // accepting all
+  std::cout << "accepting in fb queue" << std::endl;
+
+  /*
+  std::find kann verwendet werden um ein element im array zu finden
+  = ip-adressen array wird nach der destination adresse gescanned.
+  wenn gefunden dann weiter mit klassifizierung
+   */
+
+  struct nfqnl_msg_packet_hdr *ph;
+  ph = nfq_get_msg_packet_hdr(nfad);
+  u_int32_t id = ntohl(ph->packet_id);
+  return nfq_set_verdict(queue, id, NF_ACCEPT, 0, NULL);
 }

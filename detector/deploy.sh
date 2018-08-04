@@ -11,8 +11,14 @@ OONID_HOME=/home/oonid/
 #compile
 echo "compiling"
 cd build
-cmake ../
-make
+if ! cmake ../; then
+  echo "cmake error!"
+  exit 1
+fi
+if ! make; then
+  echo "error compiling/linking!"
+  exit 1
+fi
 cd ..
 echo
 echo

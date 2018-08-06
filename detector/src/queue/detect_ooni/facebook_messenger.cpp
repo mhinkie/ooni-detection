@@ -77,31 +77,35 @@ int FBMessengerQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nf
     [&packet](const IPv4Address *addr){return *addr == packet.dst_addr();}
   );
 
-  IPv4Address **ext_to_int = std::find_if(
-    std::begin(this->fb_servers),
-    std::end(this->fb_servers),
-    [&packet](const IPv4Address *addr){return *addr == packet.src_addr();}
-  );
-
+  // if not found, the result of std::find_if points to std::end
   if(int_to_ext != std::end(this->fb_servers)) {
-    DEBUG("int_to_ext: " << **int_to_ext);
-    // Add this connection to the tracklist
-    // only ips in the tracklist are allowed to be destinations of
-    // incoming (i.e. from internet to internal network) packets.
-    // After SYN / SYNACK / ACK the ip gets removed from the tracklist.
+    // This packet is going to facebook
+    return this->handle_int_to_ext(queue, nfmsg, nfad, packet);
+  } else {
+    // Check if this packet is coming from facebook
+
+    IPv4Address **ext_to_int = std::find_if(
+      std::begin(this->fb_servers),
+      std::end(this->fb_servers),
+      [&packet](const IPv4Address *addr){return *addr == packet.src_addr();}
+    );
+
+    if(ext_to_int != std::end(this->fb_servers)) {
+      // packet is coming from facebook
+      return this->handle_ext_to_int(queue, nfmsg, nfad, packet);
+    }
   }
 
-  if(ext_to_int != std::end(this->fb_servers)) {
-    DEBUG("ext_to_int: " << **ext_to_int);
-    // Add this connection to the tracklist
-    // only ips in the tracklist are allowed to be destinations of
-    // incoming (i.e. from internet to internal network) packets.
-    // After SYN / SYNACK / ACK the ip gets removed from the tracklist.
-  }
+  // If nothing is done (not a facebook packet) - accept it
+  ACCEPT_PACKET(queue, nfad);
+}
 
+int FBMessengerQueue::handle_ext_to_int(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad, IP &packet) {
+  DEBUG("EXT_TO_INT");
+  ACCEPT_PACKET(queue, nfad);
+}
 
-  struct nfqnl_msg_packet_hdr *ph;
-  ph = nfq_get_msg_packet_hdr(nfad);
-  u_int32_t id = ntohl(ph->packet_id);
-  return nfq_set_verdict(queue, id, NF_ACCEPT, 0, NULL);
+int FBMessengerQueue::handle_int_to_ext(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad, IP &packet) {
+  DEBUG("INT TO EXT");
+  ACCEPT_PACKET(queue, nfad);
 }

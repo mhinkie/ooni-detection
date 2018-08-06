@@ -16,10 +16,10 @@ extern "C" {
  * @see DROP_PACKET
  */
 #define SET_VERDICT(queue, nfad, verdict) { \
-    struct nfqnl_msg_packet_hdr *ph; \
-    ph = nfq_get_msg_packet_hdr((nfad)); \
-    return nfq_set_verdict((queue), ntohl(ph->packet_id), (verdict), 0, NULL); \
-  }
+  struct nfqnl_msg_packet_hdr *ph; \
+  ph = nfq_get_msg_packet_hdr((nfad)); \
+  return nfq_set_verdict((queue), ntohl(ph->packet_id), (verdict), 0, NULL); \
+}
 
 /**
  * Sets the NF_ACCEPT verdict for the given packet.

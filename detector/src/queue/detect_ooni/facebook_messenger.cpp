@@ -71,18 +71,32 @@ int FBMessengerQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nf
   IP packet = parse_ip_packet(nfad);
 
   // find if returns a pointer to the result
-  IPv4Address **contacted_server = std::find_if(
+  IPv4Address **int_to_ext = std::find_if(
     std::begin(this->fb_servers),
     std::end(this->fb_servers),
     [&packet](const IPv4Address *addr){return *addr == packet.dst_addr();}
   );
 
-  if(contacted_server != std::end(this->fb_servers)) {
-    DEBUG("FB SERVER CONTACTED: " << **contacted_server);
-    // Allow ping and tcp setup but deny everything above
-    // TODO: detect tcp setup
-  } else {
-    // Not facebook server
+  IPv4Address **ext_to_int = std::find_if(
+    std::begin(this->fb_servers),
+    std::end(this->fb_servers),
+    [&packet](const IPv4Address *addr){return *addr == packet.src_addr();}
+  );
+
+  if(int_to_ext != std::end(this->fb_servers)) {
+    DEBUG("int_to_ext: " << **int_to_ext);
+    // Add this connection to the tracklist
+    // only ips in the tracklist are allowed to be destinations of
+    // incoming (i.e. from internet to internal network) packets.
+    // After SYN / SYNACK / ACK the ip gets removed from the tracklist.
+  }
+
+  if(ext_to_int != std::end(this->fb_servers)) {
+    DEBUG("ext_to_int: " << **ext_to_int);
+    // Add this connection to the tracklist
+    // only ips in the tracklist are allowed to be destinations of
+    // incoming (i.e. from internet to internal network) packets.
+    // After SYN / SYNACK / ACK the ip gets removed from the tracklist.
   }
 
 

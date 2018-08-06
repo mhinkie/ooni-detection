@@ -11,6 +11,9 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include "util.h"
+
+using namespace Tins;
 
 /**
  * returns the address for a hostname using getaddrinfo.<br />
@@ -19,11 +22,11 @@
  * @return
  * @throws std::runtime_error on error
  */
-Tins::IPv4Address *get_address(const std::string &hostname) {
+IPv4Address *get_address(const std::string &hostname) {
   struct addrinfo *result;
   int error = getaddrinfo(hostname.c_str(), NULL, NULL, &result);
   if(!error) {
-    Tins::IPv4Address *addr = new Tins::IPv4Address(((struct sockaddr_in *)(result->ai_addr))->sin_addr.s_addr);
+    IPv4Address *addr = new IPv4Address(((struct sockaddr_in *)(result->ai_addr))->sin_addr.s_addr);
     freeaddrinfo(result);
     return addr;
   } else {
@@ -42,9 +45,9 @@ FBMessengerQueue::FBMessengerQueue(int queue_num) : StatusQueue(queue_num) {
 
   // OUTPUT
 #ifndef NDEBUG
-  std::vector<Tins::IPv4Address *> addresses;
+  std::vector<IPv4Address *> addresses;
   addresses.assign(std::begin(fb_servers), std::end(fb_servers));
-  for_each(addresses.begin(), addresses.end(), [](Tins::IPv4Address *addr) {std::cout << addr->to_string() << std::endl;});
+  for_each(addresses.begin(), addresses.end(), [](IPv4Address *addr) {std::cout << addr->to_string() << std::endl;});
 #endif
 }
 
@@ -58,14 +61,30 @@ FBMessengerQueue::~FBMessengerQueue() {
 }
 
 int FBMessengerQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) {
-  // accepting all
-  std::cout << "accepting in fb queue" << std::endl;
-
   /*
   std::find kann verwendet werden um ein element im array zu finden
   = ip-adressen array wird nach der destination adresse gescanned.
   wenn gefunden dann weiter mit klassifizierung
    */
+  // Check if destination address is one of facebooks addresses
+  //std::find(std::begin(this->fb_servers), std::end(this->fb_servers), )
+  IP packet = parse_ip_packet(nfad);
+
+  // find if returns a pointer to the result
+  IPv4Address **contacted_server = std::find_if(
+    std::begin(this->fb_servers),
+    std::end(this->fb_servers),
+    [&packet](const IPv4Address *addr){return *addr == packet.dst_addr();}
+  );
+
+  if(contacted_server != std::end(this->fb_servers)) {
+    DEBUG("FB SERVER CONTACTED: " << **contacted_server);
+    // Allow ping and tcp setup but deny everything above
+    // TODO: detect tcp setup
+  } else {
+    // Not facebook server
+  }
+
 
   struct nfqnl_msg_packet_hdr *ph;
   ph = nfq_get_msg_packet_hdr(nfad);

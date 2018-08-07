@@ -11,7 +11,6 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include "util.h"
 
 using namespace Tins;
 
@@ -70,42 +69,103 @@ int FBMessengerQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nf
   //std::find(std::begin(this->fb_servers), std::end(this->fb_servers), )
   IP packet = parse_ip_packet(nfad);
 
-  // find if returns a pointer to the result
-  IPv4Address **int_to_ext = std::find_if(
-    std::begin(this->fb_servers),
-    std::end(this->fb_servers),
-    [&packet](const IPv4Address *addr){return *addr == packet.dst_addr();}
-  );
+  TCP *tcp_pdu = packet.find_pdu<TCP>();
 
-  // if not found, the result of std::find_if points to std::end
-  if(int_to_ext != std::end(this->fb_servers)) {
-    // This packet is going to facebook
-    return this->handle_int_to_ext(queue, nfmsg, nfad, packet);
-  } else {
-    // Check if this packet is coming from facebook
-
-    IPv4Address **ext_to_int = std::find_if(
+  // only check tcp packets
+  if(tcp_pdu != NULL) {
+    // find if returns a pointer to the result
+    IPv4Address **int_to_ext = std::find_if(
       std::begin(this->fb_servers),
       std::end(this->fb_servers),
-      [&packet](const IPv4Address *addr){return *addr == packet.src_addr();}
+      [&packet](const IPv4Address *addr){return *addr == packet.dst_addr();}
     );
 
-    if(ext_to_int != std::end(this->fb_servers)) {
-      // packet is coming from facebook
-      return this->handle_ext_to_int(queue, nfmsg, nfad, packet);
+    // if not found, the result of std::find_if points to std::end
+    if(int_to_ext != std::end(this->fb_servers)) {
+      // This packet is going to facebook
+      return this->handle_int_to_ext(queue, nfmsg, nfad, packet, tcp_pdu);
+    } else {
+      // Check if this packet is coming from facebook
+
+      IPv4Address **ext_to_int = std::find_if(
+        std::begin(this->fb_servers),
+        std::end(this->fb_servers),
+        [&packet](const IPv4Address *addr){return *addr == packet.src_addr();}
+      );
+
+      if(ext_to_int != std::end(this->fb_servers)) {
+        // packet is coming from facebook
+        return this->handle_ext_to_int(queue, nfmsg, nfad, packet, tcp_pdu);
+      }
     }
+
   }
 
   // If nothing is done (not a facebook packet) - accept it
   ACCEPT_PACKET(queue, nfad);
 }
 
-int FBMessengerQueue::handle_ext_to_int(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad, IP &packet) {
-  DEBUG("EXT_TO_INT");
-  ACCEPT_PACKET(queue, nfad);
+int FBMessengerQueue::handle_ext_to_int(
+  struct nfq_q_handle *queue,
+  struct nfgenmsg *nfmsg,
+  struct nfq_data *nfad,
+  IP &packet,
+  Tins::TCP *tcp_pdu) {
+
+  // Only allow SYNACK and FINACK packets
+  // packets for data transmission are not allowed
+  if(tcp_pdu->flags() == (TCP::SYN | TCP::ACK)) {
+    DEBUG("allowing SYNACK");
+    ACCEPT_PACKET(queue, nfad);
+  }
+  if(tcp_pdu->flags() == (TCP::FIN | TCP::ACK)) {
+    DEBUG("allowing FINACK");
+    ACCEPT_PACKET(queue, nfad);
+  }
+
+  DEBUG("BLOCKING FACEBOOK PACKET");
+  DROP_PACKET(queue, nfad);
 }
 
-int FBMessengerQueue::handle_int_to_ext(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad, IP &packet) {
-  DEBUG("INT TO EXT");
+int FBMessengerQueue::handle_int_to_ext(
+  struct nfq_q_handle *queue,
+  struct nfgenmsg *nfmsg,
+  struct nfq_data *nfad,
+  IP &packet,
+  Tins::TCP *tcp_pdu) {
+
   ACCEPT_PACKET(queue, nfad);
+
+  /*
+  // There are 3 possiblities:
+  //  - Packet is not part of tcp handshake -> BLOCK
+  //  - Packet is SYN packet of tcp handshake -> ACCEPT and save
+  //  - Packet is ACK packet of tcp handshake -> ACCEPT and remove status information
+  if(tcp_pdu->get_flag(TCP::SYN)) {
+    // Syn flag set - remember this connection
+    Connection conn(packet.src_addr(), tcp_pdu->sport(), packet.dst_addr(), tcp_pdu->dport());
+    if(this->connections.count(conn) > 0) {
+      // Connection is already present = another syn received -> block packet
+      // and delete connection
+      this->connections.erase(conn);
+      DEBUG("received second syn to " << packet.dst_addr().to_string() << " - blocking");
+      DROP_PACKET(queue, nfad);
+    } else {
+      // Connection does not exist
+      // create new one and accept
+      this->connections[conn] = SYN;
+      DEBUG("received syn to " << packet.dst_addr().to_string() << " - accepting");
+      ACCEPT_PACKET(queue, nfad);
+    }
+  } else if(tcp_pdu->get_flag(TCP::ACK)) {
+    Connection conn(packet.src_addr(), tcp_pdu->sport(), packet.dst_addr(), tcp_pdu->dport());
+    this->connections.erase(conn);
+    DEBUG("received ack to " << packet.dst_addr().to_string() << " - accepting");
+    ACCEPT_PACKET(queue, nfad);
+  } else {
+  DEBUG("received something else to " << packet.dst_addr().to_string() << " - blocking");
+    DROP_PACKET(queue, nfad);
+  } */
+
+
 }

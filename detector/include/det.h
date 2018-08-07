@@ -4,16 +4,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdint.h>
+#include "debug.h"
 
 extern "C" {
   #include <libnetfilter_queue/libnetfilter_queue.h>
 }
 
-#ifndef NDEBUG
-#define DEBUG(x) std::cout << x << std::endl
-#else
-#define DEBUG(x)
-#endif
 
 /**
  * OONI Detector implementation using iptables' nfqueue.

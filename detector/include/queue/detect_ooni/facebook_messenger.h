@@ -2,6 +2,13 @@
 #define FACEBOOK_MESSENGER_H
 
 #include "queue/detect_ooni/status_queue.h"
+#include <unordered_map>
+#include "util.h"
+
+/**
+ * Status of a tcp connection
+ */
+enum TCPStatus {SYN, SYNACK, ACK};
 
 /**
  * Queue implementation that blocks access to facebook messenger,
@@ -21,18 +28,30 @@ private:
    * @param  nfmsg  The nfgenmsg
    * @param  nfad   The nfq_data in case of additional required parsing
    * @param  packet The ip-packet parsed using libtins.
+   * @param  tcp_pdu A pointer to the tcp pdu of the given packet for convenience.
    * @return        Should return the return value of nfq_set_verdict (using makros ACCEPT_PACKET, DROP_PACKET)
    */
-  int handle_int_to_ext(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad, Tins::IP &packet);
+  int handle_int_to_ext(
+    struct nfq_q_handle *queue,
+    struct nfgenmsg *nfmsg,
+    struct nfq_data *nfad,
+    Tins::IP &packet,
+    Tins::TCP *tcp_pdu);
   /**
    * Handles packets coming from a facebook server and being routed to the inside network
    * @param  queue  The nfq_q_handle (for setting the verdict)
    * @param  nfmsg  The nfgenmsg
    * @param  nfad   The nfq_data in case of additional required parsing
    * @param  packet The ip-packet parsed using libtins.
+   * @param  tcp_pdu A pointer to the tcp pdu of the given packet for convenience.
    * @return        Should return the return value of nfq_set_verdict (using makros ACCEPT_PACKET, DROP_PACKET)
    */
-  int handle_ext_to_int(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad, Tins::IP &packet);
+  int handle_ext_to_int(
+    struct nfq_q_handle *queue,
+    struct nfgenmsg *nfmsg,
+    struct nfq_data *nfad,
+    Tins::IP &packet,
+    Tins::TCP *tcp_pdu);
 public:
   /**
    * Initializes the fb-messenger queue.

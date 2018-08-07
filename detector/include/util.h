@@ -2,8 +2,61 @@
 #define OONID_UTIL_H
 
 #include <tins/tins.h>
+#include <cstdint>
 extern "C" {
   #include <libnetfilter_queue/libnetfilter_queue.h>
+}
+#include "debug.h"
+
+/**
+ * Saves a connection (equality is independent of order of endpoints)
+ * @param ip_a   first ip
+ * @param port_a first port
+ * @param ip_b   second_ip
+ * @param port_b second port
+ */
+class Connection {
+public:
+  uint32_t ip_a;
+  uint16_t port_a;
+  uint32_t ip_b;
+  uint16_t port_b;
+  /**
+   * Connections are equal if on of these conditions hold:
+   * <ul>
+   *  <li>ip_a1 == ip_a2 and ip_b1 == ip_b2 and port_a1 = port_a2 and port_b1 = port_b2</li>
+   *  <li>ip_b1 == ip_a2 and ip_a1 == ip_b2 and port_b1 = port_a2 and port_a1 = port_b2</li>
+   * </ul>
+   * @param ip_a other connection
+   */
+  bool operator==(const Connection &other) const;
+  /**
+   * Saves a connection (equality is independent of order of endpoints)
+   * @param ip_a   first ip
+   * @param port_a first port
+   * @param ip_b   second_ip
+   * @param port_b second port
+   */
+  Connection(uint32_t ip_a, uint16_t port_a, uint32_t ip_b, uint16_t port_b)
+    : ip_a(ip_a), port_a(port_a), ip_b(ip_b), port_b(port_b) {}
+private:
+  friend std::ostream& operator<< (std::ostream& os, const Connection& foo) {
+      os << "(" << Tins::IPv4Address(foo.ip_a).to_string()
+        << ":" << foo.port_a << " <-> " << Tins::IPv4Address(foo.ip_b).to_string()
+        << ":" << foo.port_b << ")";
+      return os;
+  }
+};
+
+namespace std
+{
+  template<> struct hash<Connection>
+  {
+      size_t operator()(const Connection &k) const
+      {
+          return (size_t)(k.ip_a ^ (k.ip_b << 1) ^ (k.port_a << 2) ^ (k.port_b << 3));
+      }
+  };
 }
 
 /**

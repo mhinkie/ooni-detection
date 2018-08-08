@@ -28,6 +28,9 @@ enum TCPStatus {SYN, SYNACK, ACK};
  */
 class FBMessengerQueue : public StatusQueue {
 private:
+  /** saves the ips of the facebook servers in the right address (as they are connected to) */
+  Tins::IPv4Address *fb_servers[5];
+
   /**
    * Handles packets coming from the inside network and going to a facebook server.
    * <b>Not used anymore because of extended iptables rules in facebook_messenger.sh</b>

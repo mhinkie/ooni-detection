@@ -22,7 +22,7 @@ FBMessengerQueue::FBMessengerQueue(int queue_num) : StatusQueue<std::pair<std::u
 }
 
 FBMessengerQueue::~FBMessengerQueue() {
-  DEBUG("destroying fb messenger queue");
+  TRACE("destroying fb messenger queue");
 }
 
 int FBMessengerQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) {
@@ -57,15 +57,15 @@ int FBMessengerQueue::handle_ext_to_int(
   // Only allow SYNACK and FINACK packets
   // packets for data transmission are not allowed
   if(tcp_pdu->flags() == (TCP::SYN | TCP::ACK)) {
-    DEBUG("allowing SYNACK");
+    TRACE("allowing SYNACK");
     ACCEPT_PACKET(queue, nfad);
   }
   if(tcp_pdu->flags() == (TCP::FIN | TCP::ACK)) {
-    DEBUG("allowing FINACK");
+    TRACE("allowing FINACK");
     ACCEPT_PACKET(queue, nfad);
   }
 
-  DEBUG("BLOCKING FACEBOOK PACKET");
+  TRACE("BLOCKING FACEBOOK PACKET");
   DROP_PACKET(queue, nfad);
 }
 
@@ -93,15 +93,15 @@ int FBMessengerQueue::handle_int_to_ext(
       DNS dns_pdu = inner_pdu->to<DNS>();
 
       // Converting succeeded
-      DEBUG("got dns packet for inspection");
+      TRACE("got dns packet for inspection");
       // packet should be query
       if(dns_pdu.type() == DNS::QUERY) {
         std::vector<DNS::query> queries = dns_pdu.queries();
         if(queries.size() == 0) {
-          DEBUG("no queries found!");
+          TRACE("no queries found!");
         } else {
           if(queries.size() > 1) {
-            DEBUG("more than one query found - inspecting only the first");
+            TRACE("more than one query found - inspecting only the first");
           }
 
           DNS::query dns_query = queries[0];
@@ -112,11 +112,11 @@ int FBMessengerQueue::handle_int_to_ext(
             // Add to status for the sending host
             this->add_queried_name(facebook_server, packet.src_addr());
           } catch(std::out_of_range e) {
-            DEBUG("not a facebook host: " << dns_query.dname());
+            TRACE("not a facebook host: " << dns_query.dname());
           }
         }
       } else {
-        DEBUG("packet is not a query!");
+        TRACE("packet is not a query!");
       }
 
     } catch(malformed_packet e) {
@@ -153,15 +153,15 @@ void FBMessengerQueue::add_queried_name(const FBName &fb_server, const Tins::IPv
   std::pair<std::unordered_set<FBName>, std::chrono::milliseconds> status = get_status(address);
 
   if(status.second == PROBE_MARK) {
-    DEBUG("Host is already marked as probe");
+    TRACE("Host is already marked as probe");
   } else {
-    DEBUG("got status: " << address << ": (time: " << status.second.count() << ", queried_hosts: " << status.first.size() << ")");
+    TRACE("got status: " << address << ": (time: " << status.second.count() << ", queried_hosts: " << status.first.size() << ")");
 
     status.first.insert(fb_server);
 
     // check if query time ran out
     if((status.second + MAX_QUERY_WINDOW) < current) {
-      DEBUG("query time ran out for " << address << " (or new host)");
+      TRACE("query time ran out for " << address << " (or new host)");
       // delete already queried hosts
       status.first.clear();
       status.first.insert(fb_server); // add this one server
@@ -169,14 +169,14 @@ void FBMessengerQueue::add_queried_name(const FBName &fb_server, const Tins::IPv
     } else {
       if(status.first.size() >= FB_SERVER_COUNT) {
         // all servers queries = mark as Probe
-        DEBUG("found probe: " << address);
+        TRACE("found probe: " << address);
         status.second = PROBE_MARK;
       } else {
         status.second = current;
       }
     }
 
-    DEBUG("updated status");
+    TRACE("updated status");
 
     set_status(address, status);
   }

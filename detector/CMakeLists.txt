@@ -1,17 +1,9 @@
 # Specify the minimum version for CMake
-
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.5)
 set (CMAKE_CXX_STANDARD 11)
 
-#debug flag
-SET( CMAKE_BUILD_TYPE Debug)
 
-project(nfqueue_detector C CXX)
-
-include_directories(include)
-
-file(GLOB_RECURSE SOURCES src/*.cpp)
-
+###############REQUIREMENTS###############
 find_library(NFNETLINK nfnetlink)
 if(NOT NFNETLINK)
   message(FATAL_ERROR "nfnetlink not installed")
@@ -27,10 +19,28 @@ if(NOT Boost_FOUND)
   message(FATAL_ERROR "boost not installed")
 endif()
 
+###############FILES###############
+project(nfqueue_detector C CXX)
+
+include_directories(include)
+
+file(GLOB_RECURSE SOURCES src/*.cpp)
+
 include_directories(${Boost_INCLUDE_DIRS})
 
+###############EXECUTABLE###############
 add_executable(det ${SOURCES})
 
+###############FLAGS###############
+#debug flag
+SET( CMAKE_BUILD_TYPE Debug)
+
+#trace flag
+target_compile_definitions(det PUBLIC ISTRACE)
+
+
+
+###############LINKER###############
 #config file library
 #target_link_libraries(det config++)
 
@@ -44,5 +54,5 @@ target_link_libraries(det tins)
 target_link_libraries(det boost_thread)
 target_link_libraries(det boost_system)
 
-#dns
-target_link_libraries(det resolv)
+#dns (not required - using getaddrinfo)
+#target_link_libraries(det resolv)

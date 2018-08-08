@@ -110,6 +110,7 @@ int FBMessengerQueue::handle_int_to_ext(
             FBName &facebook_server = dname_name.at(dns_query.dname());
 
             // Add to status for the sending host
+            this->add_queried_name(facebook_server, packet.src_addr());
           } catch(std::out_of_range e) {
             DEBUG("not a facebook host: " << dns_query.dname());
           }
@@ -142,4 +143,42 @@ std::string FBMessengerQueue::get_printable_status(Tins::IPv4Address address) {
  */
 std::unordered_map<Tins::IPv4Address, std::string> FBMessengerQueue::get_all_printable_status() {
   return std::unordered_map<Tins::IPv4Address, std::string>();
+}
+
+void FBMessengerQueue::add_queried_name(const FBName &fb_server, const Tins::IPv4Address &address) {
+  // Get current time to check for time since the last query
+  std::chrono::milliseconds current = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+
+  // get info on sending host
+  std::pair<std::unordered_set<FBName>, std::chrono::milliseconds> status = get_status(address);
+
+  if(status.second == PROBE_MARK) {
+    DEBUG("Host is already marked as probe");
+  } else {
+    DEBUG("got status: " << address << ": (time: " << status.second.count() << ", queried_hosts: " << status.first.size() << ")");
+
+    status.first.insert(fb_server);
+
+    // check if query time ran out
+    if((status.second + MAX_QUERY_WINDOW) < current) {
+      DEBUG("query time ran out for " << address << " (or new host)");
+      // delete already queried hosts
+      status.first.clear();
+      status.first.insert(fb_server); // add this one server
+      status.second = current; // add the query time
+    } else {
+      if(status.first.size() >= FB_SERVER_COUNT) {
+        // all servers queries = mark as Probe
+        DEBUG("found probe: " << address);
+        status.second = PROBE_MARK;
+      } else {
+        status.second = current;
+      }
+    }
+
+    DEBUG("updated status");
+
+    set_status(address, status);
+  }
+
 }

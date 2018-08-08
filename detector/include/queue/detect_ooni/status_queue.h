@@ -8,10 +8,11 @@
 #include <boost/thread/shared_mutex.hpp>
 #include <string>
 
-/** Indicates, that a host is not a probe or not examined */
-#define STATUS_NO_PROBE INT_MIN
-/** Indicates, that a host is probably an ooni-probe */
-#define STATUS_PROBE 1
+
+// shared lock for reading
+#define READLOCK() boost::shared_lock<boost::shared_mutex> lock(this->mutex)
+// unique lock for writing
+#define WRITELOCK() boost::unique_lock<boost::shared_mutex> lock(this->mutex)
 
 /**
  * Queue implementation, that is able to keep track of per-ip status information.
@@ -38,7 +39,10 @@ protected:
    * @param Tins::IPv4Address The ip to modify
    * @param status            The new status.
    */
-  void set_status(Tins::IPv4Address ip, T status);
+  void set_status(Tins::IPv4Address ip, T status) {
+    WRITELOCK();
+    this->ip_status[ip] = status;
+  }
 public:
   /**
    * Initializes the status queue. Creates map containing status on hosts.
@@ -62,17 +66,25 @@ public:
   virtual std::unordered_map<Tins::IPv4Address, std::string> get_all_printable_status() = 0;
 
   /**
-   * Returns the status for an ip-address. If no status is saved for this address, #STATUS_NO_PROBE is returned.
+   * Returns the status for an ip-address. (empty status if not already in set).
    * @param  address The address to return a status for.
    * @return         The status information.
    */
-  T get_status(Tins::IPv4Address address) const;
+  T get_status(Tins::IPv4Address address) {
+    READLOCK();
+    return ip_status[address];
+  }
 
   /**
    * Returns a copy of the internal status information for all examined hosts.
    */
-  std::unordered_map<Tins::IPv4Address, T> get_all_status() const;
+  std::unordered_map<Tins::IPv4Address, T> get_all_status() const {
+    READLOCK();
+    return this->ip_status;
+  }
 };
+
+
 
 class IntegerStatusQueue : public StatusQueue<int> {
 public:

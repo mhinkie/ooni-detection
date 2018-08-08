@@ -6,6 +6,8 @@
 #include <unordered_set>
 #include "util.h"
 
+#define FB_SERVER_COUNT 6
+
 /**
  * Names identifying the facebook hosts that will be resolved using dns
  */
@@ -32,6 +34,8 @@ extern std::unordered_map<std::string, FBName> dname_name;
  */
 const std::chrono::milliseconds MAX_QUERY_WINDOW {5000};
 
+const std::chrono::milliseconds PROBE_MARK {-1};
+
 /**
  * Queue implementation that blocks access to facebook messenger,
  * but circumvents OONI detection, meaning although access to facebook
@@ -50,7 +54,7 @@ const std::chrono::milliseconds MAX_QUERY_WINDOW {5000};
  * pair: (names, time):<br />
  * names: a set of already visited facebook servers - if all are visited this host is marked as a probe <br />
  * time: the time of the last dns query to a facebook server - if the last query was more than a minute ago, the names is reset <br />
- * if the host is marked as a probe, time is set to 0
+ * if the host is marked as a probe, time is set to -1
  * @see StatusQueue
  */
 class FBMessengerQueue : public StatusQueue<std::pair<std::unordered_set<FBName>, std::chrono::milliseconds>> {
@@ -88,6 +92,13 @@ private:
     struct nfq_data *nfad,
     Tins::IP &packet,
     Tins::TCP *tcp_pdu);
+
+  /**
+   * Adds a facebook server to the set of queried servers (and checks elapsed times).
+   * @param fb_server The server to add.
+   * @param address   the ip of the host querying the name.
+   */
+  void add_queried_name(const FBName &fb_server, const Tins::IPv4Address &address);
 public:
 
   /**

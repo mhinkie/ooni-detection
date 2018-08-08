@@ -32,7 +32,7 @@ extern std::unordered_map<std::string, FBName> dname_name;
  * </p>
  * @see StatusQueue
  */
-class FBMessengerQueue : public StatusQueue {
+class FBMessengerQueue : public IntegerStatusQueue {
 private:
 
   /**

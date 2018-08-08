@@ -6,6 +6,7 @@
 #include "det.h"
 #include <climits>
 #include <boost/thread/shared_mutex.hpp>
+#include <string>
 
 /** Indicates, that a host is not a probe or not examined */
 #define STATUS_NO_PROBE INT_MIN
@@ -20,9 +21,7 @@
  * addresses. A address is only checked, if the queue found it necesseary to mark this
  * ip with a specific status (meaning not all ips that are communicating are present in the queue).<br />
  * <p>
- *  Status are starting from INT_MIN (not examined, or no information indicating an ooni-probe found) (#STATUS_NO_PROBE),
- *  to 1 (#STATUS_PROBE) (indicating that is host is probably an ooni-probe). All positive values (> #STATUS_PROBE) can
- *  be used to encode additional information (like the probable version of the probe, or if the probe is testing at this moment...).
+ *  Status can be any object (is implementation dependent)
  * </p>
  * Implementing queues might not use the status-information for blocking or allowing packets at all, and
  * just keep it for documentation purposes.
@@ -40,12 +39,6 @@ protected:
    * @param status            The new status.
    */
   void set_status(Tins::IPv4Address ip, T status);
-  /**
-   * relatively changes the status for an ip
-   * @param Tins::IPv4Address The ip to modify
-   * @param delta_status      The change of status (+ = status is increased = more likely, - = status is decreased = less likely)
-   */
-  void change_status(Tins::IPv4Address ip, T delta_status);
 public:
   /**
    * Initializes the status queue. Creates map containing status on hosts.
@@ -53,20 +46,54 @@ public:
    * @param queue_num [description]
    */
   StatusQueue(int queue_num) : NFQueue(queue_num) { }
-  virtual ~StatusQueue() { std::cout << "destroying status queue" << std::endl; }
+  virtual ~StatusQueue() { DEBUG("destroying status queue"); }
   virtual int handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) = 0;
+
+  /**
+   * Returns a printable version of the status of the given IP.
+   * @param  address the ip.
+   * @return         a readable version of the status.
+   */
+  virtual std::string get_printable_status(Tins::IPv4Address address) = 0;
+
+  /**
+   * Returns a printable status of all tracked IPs
+   */
+  virtual std::unordered_map<Tins::IPv4Address, std::string> get_all_printable_status() = 0;
 
   /**
    * Returns the status for an ip-address. If no status is saved for this address, #STATUS_NO_PROBE is returned.
    * @param  address The address to return a status for.
    * @return         The status information.
    */
-  int get_status(Tins::IPv4Address address) const;
+  T get_status(Tins::IPv4Address address) const;
 
   /**
    * Returns a copy of the internal status information for all examined hosts.
    */
-  std::unordered_map<Tins::IPv4Address, int> get_all_status() const;
+  std::unordered_map<Tins::IPv4Address, T> get_all_status() const;
+};
+
+class IntegerStatusQueue : public StatusQueue<int> {
+public:
+  /**
+   * Initializes the status queue. Creates map containing status on hosts.
+   * @see NFQueue::NFQueue()
+   * @param queue_num [description]
+   */
+  IntegerStatusQueue(int queue_num) : StatusQueue<int>(queue_num) { }
+  virtual ~IntegerStatusQueue() { DEBUG("destroying int-status queue"); }
+  /**
+   * Returns a printable version of the status of the given IP.
+   * @param  address the ip.
+   * @return         a readable version of the status.
+   */
+  virtual std::string get_printable_status(Tins::IPv4Address address);
+
+  /**
+   * Returns a printable status of all tracked IPs
+   */
+  virtual std::unordered_map<Tins::IPv4Address, std::string> get_all_printable_status();
 };
 
 #endif

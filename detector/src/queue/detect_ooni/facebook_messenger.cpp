@@ -18,7 +18,7 @@ std::unordered_map<std::string, FBName> dname_name = {
   {"star.c10r.facebook.com", FBName::star}
 };
 
-FBMessengerQueue::FBMessengerQueue(int queue_num) : StatusQueue(queue_num) {
+FBMessengerQueue::FBMessengerQueue(int queue_num) : IntegerStatusQueue(queue_num) {
 }
 
 FBMessengerQueue::~FBMessengerQueue() {

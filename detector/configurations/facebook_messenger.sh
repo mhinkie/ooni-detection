@@ -13,6 +13,9 @@ do
   iptables -A FORWARD -s $src_addr -j NFQUEUE --queue-num 0
 done
 
+# put dns requests in queue for detection purposes
+iptables -A FORWARD -p udp --dport 53 -j NFQUEUE --queue-num 0
+
 echo
 echo
 #echo "Rules: "

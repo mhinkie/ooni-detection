@@ -27,24 +27,25 @@
  * Implementing queues might not use the status-information for blocking or allowing packets at all, and
  * just keep it for documentation purposes.
  */
+template <typename T>
 class StatusQueue : public NFQueue {
 private:
   mutable boost::shared_mutex mutex;
   /** status for hosts as reported to "outside". every status queue might keep an internal map aswell */
-  std::unordered_map<Tins::IPv4Address, int> ip_status;
+  std::unordered_map<Tins::IPv4Address, T> ip_status;
 protected:
   /**
    * Sets the status for this ip to a new value.
    * @param Tins::IPv4Address The ip to modify
    * @param status            The new status.
    */
-  void set_status(Tins::IPv4Address ip, int status);
+  void set_status(Tins::IPv4Address ip, T status);
   /**
    * relatively changes the status for an ip
    * @param Tins::IPv4Address The ip to modify
    * @param delta_status      The change of status (+ = status is increased = more likely, - = status is decreased = less likely)
    */
-  void change_status(Tins::IPv4Address ip, int delta_status);
+  void change_status(Tins::IPv4Address ip, T delta_status);
 public:
   /**
    * Initializes the status queue. Creates map containing status on hosts.

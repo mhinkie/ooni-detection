@@ -6,9 +6,15 @@
 #include "util.h"
 
 /**
- * Status of a tcp connection
+ * Names identifying the facebook hosts that will be resolved using dns
  */
-enum TCPStatus {SYN, SYNACK, ACK};
+enum class FBName {b_api, b_graph, edge, external_cdn, scontent_cdn, star};
+
+/**
+ * Map associating every facebook dns_name with the FBNames name. <br />
+ * used for looking up if this server is part of oonis-test servers.
+ */
+extern std::unordered_map<std::string, FBName> dname_name;
 
 /**
  * Queue implementation that blocks access to facebook messenger,
@@ -28,12 +34,11 @@ enum TCPStatus {SYN, SYNACK, ACK};
  */
 class FBMessengerQueue : public StatusQueue {
 private:
-  /** saves the ips of the facebook servers in the right address (as they are connected to) */
-  Tins::IPv4Address *fb_servers[5];
 
   /**
    * Handles packets coming from the inside network and going to a facebook server.
-   * <b>Not used anymore because of extended iptables rules in facebook_messenger.sh</b>
+   * <b>This function should only receive DNS-request going out.</b>
+   * DNS requests are monitor for detection purposes (no blocking will be performed).
    * @param  queue  The nfq_q_handle (for setting the verdict)
    * @param  nfmsg  The nfgenmsg
    * @param  nfad   The nfq_data in case of additional required parsing
@@ -46,7 +51,7 @@ private:
     struct nfgenmsg *nfmsg,
     struct nfq_data *nfad,
     Tins::IP &packet,
-    Tins::TCP *tcp_pdu);
+    Tins::UDP *udp_pdu);
   /**
    * Handles packets coming from a facebook server and being routed to the inside network
    * @param  queue  The nfq_q_handle (for setting the verdict)
@@ -63,6 +68,7 @@ private:
     Tins::IP &packet,
     Tins::TCP *tcp_pdu);
 public:
+
   /**
    * Initializes the fb-messenger queue.
    * @param queue_num The number of this queue in iptables.

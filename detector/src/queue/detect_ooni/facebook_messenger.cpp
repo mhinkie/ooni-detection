@@ -3,39 +3,27 @@
 #include <iostream>
 #include <netinet/in.h>
 #include <linux/netfilter.h>
-#include <resolv.h>
 #include <stdexcept>
 #include <vector>
 #include <algorithm>
 
 using namespace Tins;
 
+std::unordered_map<std::string, FBName> dname_name = {
+  {"b-api.facebook.com", FBName::b_api},
+  {"b-graph.facebook.com", FBName::b_graph},
+  {"edge-mqtt.facebook.com", FBName::edge},
+  {"external.xx.fbcdn.net", FBName::external_cdn},
+  {"scontent.xx.fbcdn.net", FBName::scontent_cdn},
+  {"star.c10r.facebook.com", FBName::star}
+};
+
 FBMessengerQueue::FBMessengerQueue(int queue_num) : StatusQueue(queue_num) {
-  // No initialization required anymore because the queue can treat all
-  // incoming packets as packets from facebook
-  //   fb_servers[0] = get_address("star.c10r.facebook.com");
-  fb_servers[1] = get_address("b-graph.facebook.com");
-  fb_servers[2] = get_address("edge-mqtt.facebook.com");
-  fb_servers[3] = get_address("external.xx.fbcdn.net");
-  fb_servers[4] = get_address("scontent.xx.fbcdn.net");
-
-  DEBUG("Resolved all facebook addresses");
-
-  // OUTPUT
-#ifdef ISDEBUG
-  std::vector<Tins::IPv4Address *> addresses;
-  addresses.assign(fb_servers, fb_servers + 5);
-  for_each(addresses.begin(), addresses.end(), [](Tins::IPv4Address *addr) { DEBUG(addr->to_string());});
-#endif
 }
 
 FBMessengerQueue::~FBMessengerQueue() {
   DEBUG("destroying fb messenger queue");
 
-  // Release server addresses
-  for(int i=0;i<5;i++) {
-    delete this->fb_servers[i];
-  }
 }
 
 int FBMessengerQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) {
@@ -49,8 +37,14 @@ int FBMessengerQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nf
     // only check TCP
     return this->handle_ext_to_int(queue, nfmsg, nfad, packet, tcp_pdu);
   } else {
-    // everything else is accepted
-    ACCEPT_PACKET(queue, nfad);
+    UDP *udp_pdu = packet.find_pdu<UDP>();
+    if(udp_pdu != NULL) {
+      // This is a dns request going out
+      return this->handle_int_to_ext(queue, nfmsg, nfad, packet, udp_pdu);
+    } else {
+      // everything else is accepted
+      ACCEPT_PACKET(queue, nfad);
+    }
   }
 }
 
@@ -59,7 +53,7 @@ int FBMessengerQueue::handle_ext_to_int(
   struct nfgenmsg *nfmsg,
   struct nfq_data *nfad,
   IP &packet,
-  Tins::TCP *tcp_pdu) {
+  TCP *tcp_pdu) {
 
   // Only allow SYNACK and FINACK packets
   // packets for data transmission are not allowed
@@ -81,7 +75,54 @@ int FBMessengerQueue::handle_int_to_ext(
   struct nfgenmsg *nfmsg,
   struct nfq_data *nfad,
   IP &packet,
-  Tins::TCP *tcp_pdu) {
+  UDP *udp_pdu) {
+
+  // OONI will lookup the following addresses (in an undefined order)
+  // if all requests were received the sending host will be marked as a probable probe
+  /*
+  'b_api': "b-api.facebook.com",
+  'b_graph': "b-graph.facebook.com",
+  'edge': "edge-mqtt.facebook.com",
+  'external_cdn': "external.xx.fbcdn.net",
+  'scontent_cdn': "scontent.xx.fbcdn.net",
+  'star': "star.c10r.facebook.com" */
+
+  // Ceck if this is a dns packet
+  RawPDU *inner_pdu = udp_pdu->find_pdu<RawPDU>();
+  if(inner_pdu != NULL) {
+    try {
+      DNS dns_pdu = inner_pdu->to<DNS>();
+
+      // Converting succeeded
+      DEBUG("got dns packet for inspection");
+      // packet should be query
+      if(dns_pdu.type() == DNS::QUERY) {
+        std::vector<DNS::query> queries = dns_pdu.queries();
+        if(queries.size() == 0) {
+          DEBUG("no queries found!");
+        } else {
+          if(queries.size() > 1) {
+            DEBUG("more than one query found - inspecting only the first");
+          }
+
+          DNS::query dns_query = queries[0];
+          // lookup queried name to see if it is a facebook host
+          try {
+            FBName &facebook_server = dname_name.at(dns_query.dname());
+
+            // Add to status for the sending host
+          } catch(std::out_of_range e) {
+            DEBUG("not a facebook host: " << dns_query.dname());
+          }
+        }
+      } else {
+        DEBUG("packet is not a query!");
+      }
+
+    } catch(malformed_packet e) {
+      // Not dns = just accept
+    }
+  }
 
   ACCEPT_PACKET(queue, nfad);
 }

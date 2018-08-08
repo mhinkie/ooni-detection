@@ -6,6 +6,7 @@ INTERNAL_IF=enp0s8
 
 # activate routing
 echo "1" > /proc/sys/net/ipv4/ip_forward
+iptables --flush
 # everyting coming from inside and waiting to be forwarded is sent to the detector (using nfqueue)
 # removed interface to handle both incoming and outgoing packets
 iptables -A FORWARD -j NFQUEUE --queue-num 0

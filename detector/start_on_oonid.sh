@@ -15,9 +15,14 @@ vm_config/reset_config.sh
 vm_config/internal_config.sh
 vm_config/external_config.sh
 vm_config/router_config.sh
+echo
+echo
+
+
+echo "Running test specific setup"
+./configurations/$1.sh
 
 echo
 echo
 echo "Starting detector..."
-cd build
-./det 0
+./build/det 0 $1

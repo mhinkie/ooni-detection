@@ -91,20 +91,32 @@ void NFQueue::start() {
   DEBUG("receive loop finished");
 }
 
-
+/**
+ * Returns the queue for the specific test name
+ * @param  test_name Test name
+ * @return           the queue which schould be started
+ */
+std::unique_ptr<NFQueue> get_queue(std::string test_name, int queue_number) {
+  if(test_name == std::string("facebook_messenger")) {
+    return std::unique_ptr<NFQueue>(new FBMessengerQueue(queue_number));
+  }
+  throw std::runtime_error("no appropriate queue found for test-name: " + test_name);
+}
 
 int main(int argc, char **argv) {
-  if(argc < 2) {
-    std::cerr << "Please supply a queue number" << std::endl;
+  if(argc < 3) {
+    std::cerr << "Please supply a queue number and a test name" << std::endl;
     return 1;
   }
 
   try {
     int queue_number = std::stoi(argv[1]);
-    FBMessengerQueue q(queue_number);
+
+    std::string test_name(argv[2]);
+    std::unique_ptr<NFQueue> q = get_queue(test_name, queue_number);
 
     // Start processing
-    q.start();
+    q->start();
   } catch(std::logic_error e) {
     std::cerr << "Invalid value for queue number: " << argv[1] << std::endl;
     return 1;

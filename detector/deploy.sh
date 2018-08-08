@@ -3,6 +3,14 @@
 
 #for this script, root login has to be enabled on ooni-detector-vm
 
+TEST_NAME=facebook_messenger
+
+if [ -n "$1" ]; then
+  TEST_NAME=$1
+fi
+
+echo "Deploying ${TEST_NAME}"
+
 VM_IP=192.168.56.101
 VM_USER=oonid
 DEPLOY_PATH=deploy/nfqueue_detector
@@ -32,4 +40,4 @@ echo
 
 echo "running startscript"
 #https://stackoverflow.com/questions/305035/how-to-use-ssh-to-run-a-shell-script-on-a-remote-machine
-ssh root@${VM_IP} "bash -s" < start_on_oonid.sh #> output.txt
+ssh root@${VM_IP} "bash -s" < start_on_oonid.sh $TEST_NAME #> output.txt

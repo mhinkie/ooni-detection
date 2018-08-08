@@ -48,12 +48,9 @@ private:
   }
 };
 
-namespace std
-{
-  template<> struct hash<Connection>
-  {
-      size_t operator()(const Connection &k) const
-      {
+namespace std {
+  template<> struct hash<Connection>{
+      size_t operator()(const Connection &k) const {
           return (size_t)(k.ip_a ^ (k.ip_b << 1) ^ (k.port_a << 2) ^ (k.port_b << 3));
       }
   };

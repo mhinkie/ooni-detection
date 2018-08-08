@@ -3,12 +3,22 @@
 
 #include "queue/detect_ooni/status_queue.h"
 #include <unordered_map>
+#include <unordered_set>
 #include "util.h"
 
 /**
  * Names identifying the facebook hosts that will be resolved using dns
  */
 enum class FBName {b_api, b_graph, edge, external_cdn, scontent_cdn, star};
+
+// Hash für FBName
+namespace std {
+  template<> struct hash<FBName> {
+      size_t operator()(const FBName &name) const {
+          return (size_t)name;
+      }
+  };
+}
 
 /**
  * Map associating every facebook dns_name with the FBNames name. <br />
@@ -17,11 +27,17 @@ enum class FBName {b_api, b_graph, edge, external_cdn, scontent_cdn, star};
 extern std::unordered_map<std::string, FBName> dname_name;
 
 /**
+ * Maximum time allowed between facebook dns queries. After that, the set of
+ * already queried dns names is discarded.
+ */
+const std::chrono::milliseconds MAX_QUERY_WINDOW {5000};
+
+/**
  * Queue implementation that blocks access to facebook messenger,
  * but circumvents OONI detection, meaning although access to facebook
  * messenger is blocked, OONI will think it is not blocked. <br />
- * This queue will keep status about hosts and is able to return if hosts
- * are suspected to be ooni probes.
+ * This queue will keep status about hosts as a set of already queried
+ * dns names.
  * <p>
  *  FBMessengerQueue treats all incoming and outgoing as packets going to or
  *  coming from facebook. To create iptables rules which match this requirement
@@ -30,9 +46,14 @@ extern std::unordered_map<std::string, FBName> dname_name;
  * <p>
  *  Will only handle IPv4 for the moment.
  * </p>
+ * Status format: <br />
+ * pair: (names, time):<br />
+ * names: a set of already visited facebook servers - if all are visited this host is marked as a probe <br />
+ * time: the time of the last dns query to a facebook server - if the last query was more than a minute ago, the names is reset <br />
+ * if the host is marked as a probe, time is set to 0
  * @see StatusQueue
  */
-class FBMessengerQueue : public IntegerStatusQueue {
+class FBMessengerQueue : public StatusQueue<std::pair<std::unordered_set<FBName>, std::chrono::milliseconds>> {
 private:
 
   /**
@@ -86,6 +107,18 @@ public:
    * @return
    */
   int handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad);
+
+  /**
+   * Returns a printable version of the status of the given IP.
+   * @param  address the ip.
+   * @return         a readable version of the status.
+   */
+  virtual std::string get_printable_status(Tins::IPv4Address address);
+
+  /**
+   * Returns a printable status of all tracked IPs
+   */
+  virtual std::unordered_map<Tins::IPv4Address, std::string> get_all_printable_status();
 };
 
 #endif

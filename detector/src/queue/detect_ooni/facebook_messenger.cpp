@@ -18,12 +18,11 @@ std::unordered_map<std::string, FBName> dname_name = {
   {"star.c10r.facebook.com", FBName::star}
 };
 
-FBMessengerQueue::FBMessengerQueue(int queue_num) : IntegerStatusQueue(queue_num) {
+FBMessengerQueue::FBMessengerQueue(int queue_num) : StatusQueue<std::pair<std::unordered_set<FBName>, std::chrono::milliseconds>>(queue_num) {
 }
 
 FBMessengerQueue::~FBMessengerQueue() {
   DEBUG("destroying fb messenger queue");
-
 }
 
 int FBMessengerQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) {
@@ -125,4 +124,22 @@ int FBMessengerQueue::handle_int_to_ext(
   }
 
   ACCEPT_PACKET(queue, nfad);
+}
+
+
+
+/**
+ * Returns a printable version of the status of the given IP.
+ * @param  address the ip.
+ * @return         a readable version of the status.
+ */
+std::string FBMessengerQueue::get_printable_status(Tins::IPv4Address address) {
+  return "";
+}
+
+/**
+ * Returns a printable status of all tracked IPs
+ */
+std::unordered_map<Tins::IPv4Address, std::string> FBMessengerQueue::get_all_printable_status() {
+  return std::unordered_map<Tins::IPv4Address, std::string>();
 }

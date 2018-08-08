@@ -98,4 +98,13 @@ namespace std
  */
 Tins::IP parse_ip_packet(struct nfq_data *nfad);
 
+/**
+ * returns the address for a hostname using getaddrinfo.<br />
+ * address has to be deleted later.
+ * @param  hostname
+ * @return
+ * @throws std::runtime_error on error
+ */
+Tins::IPv4Address *get_address(const std::string &hostname);
+
 #endif

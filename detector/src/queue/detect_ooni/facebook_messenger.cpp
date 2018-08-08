@@ -8,30 +8,7 @@
 #include <vector>
 #include <algorithm>
 
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-
 using namespace Tins;
-
-/**
- * returns the address for a hostname using getaddrinfo.<br />
- * address has to be deleted later.
- * @param  hostname
- * @return
- * @throws std::runtime_error on error
- */
-IPv4Address *get_address(const std::string &hostname) {
-  struct addrinfo *result;
-  int error = getaddrinfo(hostname.c_str(), NULL, NULL, &result);
-  if(!error) {
-    IPv4Address *addr = new IPv4Address(((struct sockaddr_in *)(result->ai_addr))->sin_addr.s_addr);
-    freeaddrinfo(result);
-    return addr;
-  } else {
-    throw std::runtime_error("Address could not be resolved for " + hostname);
-  }
-}
 
 FBMessengerQueue::FBMessengerQueue(int queue_num) : StatusQueue(queue_num) {
   // No initialization required anymore because the queue can treat all

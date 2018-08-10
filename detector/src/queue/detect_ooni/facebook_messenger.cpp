@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <vector>
 #include <algorithm>
+#include <sstream>
 
 using namespace Tins;
 
@@ -18,7 +19,7 @@ std::unordered_map<std::string, FBName> dname_name = {
   {"star.c10r.facebook.com", FBName::star}
 };
 
-FBMessengerQueue::FBMessengerQueue(int queue_num) : StatusQueue<std::pair<std::unordered_set<FBName>, std::chrono::milliseconds>>(queue_num) {
+FBMessengerQueue::FBMessengerQueue(int queue_num) : StatusQueue<FBStatus>(queue_num) {
 }
 
 FBMessengerQueue::~FBMessengerQueue() {
@@ -127,7 +128,23 @@ int FBMessengerQueue::handle_int_to_ext(
   ACCEPT_PACKET(queue, nfad);
 }
 
+std::string format_status(const FBStatus &status) {
+  std::ostringstream out;
+  std::chrono::milliseconds current = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 
+  if(status.second == PROBE_MARK) {
+    out << "PROBE";
+  } else {
+    if(status.second + MAX_QUERY_WINDOW < current) {
+      out << "Query time ran out (after " << status.first.size() << " queried names)";
+    } else {
+      std::chrono::milliseconds time_elapsed = current - status.second;
+      out << status.first.size() << " host already queried " << time_elapsed.count() << "ms ago";
+    }
+  }
+
+  return out.str();
+}
 
 /**
  * Returns a printable version of the status of the given IP.
@@ -135,14 +152,19 @@ int FBMessengerQueue::handle_int_to_ext(
  * @return         a readable version of the status.
  */
 std::string FBMessengerQueue::get_printable_status(Tins::IPv4Address address) {
-  return "";
+  return format_status(get_status(address));
 }
 
 /**
  * Returns a printable status of all tracked IPs
  */
 std::unordered_map<Tins::IPv4Address, std::string> FBMessengerQueue::get_all_printable_status() {
-  return std::unordered_map<Tins::IPv4Address, std::string>();
+  std::unordered_map<Tins::IPv4Address, FBStatus> all_status = get_all_status();
+  std::unordered_map<Tins::IPv4Address, std::string> printable_status;
+  for(auto status_pair : all_status) {
+    printable_status[status_pair.first] = format_status(status_pair.second);
+  }
+  return printable_status;
 }
 
 void FBMessengerQueue::add_queried_name(const FBName &fb_server, const Tins::IPv4Address &address) {
@@ -150,7 +172,7 @@ void FBMessengerQueue::add_queried_name(const FBName &fb_server, const Tins::IPv
   std::chrono::milliseconds current = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 
   // get info on sending host
-  std::pair<std::unordered_set<FBName>, std::chrono::milliseconds> status = get_status(address);
+  FBStatus status = get_status(address);
 
   if(status.second == PROBE_MARK) {
     TRACE("Host is already marked as probe");

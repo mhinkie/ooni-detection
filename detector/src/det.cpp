@@ -6,8 +6,11 @@
 #include <netinet/in.h>
 #include <linux/netfilter.h>
 #include "queue/detect_ooni/facebook_messenger.h"
+#include <thread>
+#include <chrono>
 
 #define DEFAULT_POLICY NF_ACCEPT
+#define DEBUG_OUTPUT_INTERVAL_S 10
 
 /**
  * netfilter queue callback function. Function is called after a packet is processed
@@ -96,11 +99,23 @@ void NFQueue::start() {
  * @param  test_name Test name
  * @return           the queue which schould be started
  */
-std::unique_ptr<NFQueue> get_queue(std::string test_name, int queue_number) {
+PrintableQueue *get_queue(std::string test_name, int queue_number) {
   if(test_name == std::string("facebook_messenger")) {
-    return std::unique_ptr<NFQueue>(new FBMessengerQueue(queue_number));
+    return new FBMessengerQueue(queue_number);
   }
   throw std::runtime_error("no appropriate queue found for test-name: " + test_name);
+}
+
+void debug_loop(PrintableQueue *queue) {
+  std::chrono::seconds sleep_duration(DEBUG_OUTPUT_INTERVAL_S);
+  while(true) {
+    std::this_thread::sleep_for(sleep_duration);
+    DEBUG("Current status:");
+    for(auto entry : queue->get_all_printable_status()) {
+      DEBUG(entry.first << ": " << entry.second);
+    }
+    DEBUG("");
+  }
 }
 
 int main(int argc, char **argv) {
@@ -113,10 +128,16 @@ int main(int argc, char **argv) {
     int queue_number = std::stoi(argv[1]);
 
     std::string test_name(argv[2]);
-    std::unique_ptr<NFQueue> q = get_queue(test_name, queue_number);
+    PrintableQueue *q = get_queue(test_name, queue_number);
+
+#ifdef ISDEBUG
+      std::thread d_loop(debug_loop, q);
+#endif
 
     // Start processing
     q->start();
+
+    delete q;
   } catch(std::logic_error e) {
     std::cerr << "Invalid value for queue number: " << argv[1] << std::endl;
     return 1;

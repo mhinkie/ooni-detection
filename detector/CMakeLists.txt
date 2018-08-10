@@ -1,3 +1,5 @@
+project(nfqueue_detector C CXX)
+
 # Specify the minimum version for CMake
 cmake_minimum_required(VERSION 3.5)
 set (CMAKE_CXX_STANDARD 11)
@@ -19,8 +21,9 @@ if(NOT Boost_FOUND)
   message(FATAL_ERROR "boost not installed")
 endif()
 
+find_package(Threads)
+
 ###############FILES###############
-project(nfqueue_detector C CXX)
 
 include_directories(include)
 
@@ -49,6 +52,9 @@ target_link_libraries(det netfilter_queue)
 
 #libtins for parsing
 target_link_libraries(det tins)
+
+#threads
+target_link_libraries(det ${CMAKE_THREAD_LIBS_INIT})
 
 #Boost
 target_link_libraries(det boost_thread)

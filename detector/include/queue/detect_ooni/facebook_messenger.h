@@ -36,6 +36,8 @@ const std::chrono::milliseconds MAX_QUERY_WINDOW {5000};
 
 const std::chrono::milliseconds PROBE_MARK {-1};
 
+typedef std::pair<std::unordered_set<FBName>, std::chrono::milliseconds> FBStatus;
+
 /**
  * Queue implementation that blocks access to facebook messenger,
  * but circumvents OONI detection, meaning although access to facebook
@@ -57,7 +59,7 @@ const std::chrono::milliseconds PROBE_MARK {-1};
  * if the host is marked as a probe, time is set to -1
  * @see StatusQueue
  */
-class FBMessengerQueue : public StatusQueue<std::pair<std::unordered_set<FBName>, std::chrono::milliseconds>> {
+class FBMessengerQueue : public StatusQueue<FBStatus> {
 private:
 
   /**

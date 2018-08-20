@@ -20,7 +20,12 @@ echo
 
 
 echo "Running test specific setup"
-./configurations/$1.sh
+if [ -z "$1" ]
+then
+  echo "No test name given - starting accept_all queue"
+else
+  ./configurations/$1.sh
+fi
 
 echo
 echo

@@ -6,7 +6,7 @@
 
 int AcceptAllQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) {
   // accepting all
-  DEBUG("accepting");
+  TRACE("accepting");
 
   struct nfqnl_msg_packet_hdr *ph;
   ph = nfq_get_msg_packet_hdr(nfad);

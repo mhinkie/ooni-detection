@@ -9,6 +9,10 @@ if [ -n "$1" ]; then
   TEST_NAME=$1
 fi
 
+if [ "$1" == "none" ]; then
+  TEST_NAME=""
+fi
+
 echo "Deploying ${TEST_NAME}"
 
 VM_IP=192.168.56.101

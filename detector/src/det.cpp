@@ -1,5 +1,7 @@
 #include "det.h"
 
+#include "queue/accept_all.h"
+
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -119,25 +121,36 @@ void debug_loop(PrintableQueue *queue) {
 }
 
 int main(int argc, char **argv) {
-  if(argc < 3) {
-    std::cerr << "Please supply a queue number and a test name" << std::endl;
+  if(argc < 2) {
+    std::cerr << "Please supply a queue number and a optional test name" << std::endl;
     return 1;
   }
 
   try {
     int queue_number = std::stoi(argv[1]);
 
-    std::string test_name(argv[2]);
-    PrintableQueue *q = get_queue(test_name, queue_number);
+    if(argc == 3) {
+      // Test name supplied - start this test
+      std::string test_name(argv[2]);
+      PrintableQueue *q = get_queue(test_name, queue_number);
 
-#ifdef ISDEBUG
-      std::thread d_loop(debug_loop, q);
-#endif
+      #ifdef ISDEBUG
+            std::thread d_loop(debug_loop, q);
+      #endif
 
-    // Start processing
-    q->start();
+      // Start processing
+      q->start();
 
-    delete q;
+
+      delete q;
+    } else {
+      // No test name supplied - start allow_all queue
+      AcceptAllQueue q(queue_number);
+
+      q.start();
+    }
+
+
   } catch(std::logic_error e) {
     std::cerr << "Invalid value for queue number: " << argv[1] << std::endl;
     return 1;

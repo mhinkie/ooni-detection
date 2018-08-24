@@ -7,6 +7,7 @@
 #include <vector>
 #include <algorithm>
 #include <sstream>
+#include "util.h"
 
 using namespace Tins;
 

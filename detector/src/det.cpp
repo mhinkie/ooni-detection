@@ -1,15 +1,17 @@
 #include "det.h"
 
-#include "queue/accept_all.h"
-
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <netinet/in.h>
 #include <linux/netfilter.h>
-#include "queue/detect_ooni/facebook_messenger.h"
 #include <thread>
 #include <chrono>
+
+// Queues
+#include "queue/detect_ooni/facebook_messenger.h"
+#include "queue/detect_ooni/whatsapp.h"
+#include "queue/accept_all.h"
 
 #define DEFAULT_POLICY NF_ACCEPT
 #define DEBUG_OUTPUT_INTERVAL_S 10
@@ -104,6 +106,9 @@ void NFQueue::start() {
 PrintableQueue *get_queue(std::string test_name, int queue_number) {
   if(test_name == std::string("facebook_messenger")) {
     return new FBMessengerQueue(queue_number);
+  }
+  if(test_name == std::string("whatsapp")) {
+    return new WhatsappQueue(queue_number);
   }
   throw std::runtime_error("no appropriate queue found for test-name: " + test_name);
 }

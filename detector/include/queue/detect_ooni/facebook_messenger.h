@@ -4,7 +4,6 @@
 #include "queue/detect_ooni/status_queue.h"
 #include <unordered_map>
 #include <unordered_set>
-#include "util.h"
 
 #define FB_SERVER_COUNT 6
 
@@ -13,7 +12,7 @@
  */
 enum class FBName {b_api, b_graph, edge, external_cdn, scontent_cdn, star};
 
-// Hash für FBName
+// Hash for FBName
 namespace std {
   template<> struct hash<FBName> {
       size_t operator()(const FBName &name) const {
@@ -37,6 +36,7 @@ const std::chrono::milliseconds MAX_QUERY_WINDOW {5000};
 const std::chrono::milliseconds PROBE_MARK {-1};
 
 typedef std::pair<std::unordered_set<FBName>, std::chrono::milliseconds> FBStatus;
+
 
 /**
  * Queue implementation that blocks access to facebook messenger,

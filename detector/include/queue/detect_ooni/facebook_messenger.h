@@ -22,12 +22,6 @@ namespace std {
 }
 
 /**
- * Map associating every facebook dns_name with the FBNames name. <br />
- * used for looking up if this server is part of oonis-test servers.
- */
-extern std::unordered_map<std::string, FBName> dname_name;
-
-/**
  * Maximum time allowed between facebook dns queries. After that, the set of
  * already queried dns names is discarded.
  */

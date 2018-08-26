@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <netinet/in.h>
-#include <linux/netfilter.h>
 #include <stdexcept>
 #include <vector>
 #include <algorithm>
@@ -11,7 +10,7 @@
 
 using namespace Tins;
 
-std::unordered_map<std::string, FBName> dname_name = {
+static std::unordered_map<std::string, FBName> dname_name = {
   {"b-api.facebook.com", FBName::b_api},
   {"b-graph.facebook.com", FBName::b_graph},
   {"edge-mqtt.facebook.com", FBName::edge},

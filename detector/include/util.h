@@ -2,11 +2,14 @@
 #define OONID_UTIL_H
 
 #include <tins/tins.h>
+#include <arpa/inet.h>
 #include <cstdint>
+#include <linux/netfilter.h>
 extern "C" {
   #include <libnetfilter_queue/libnetfilter_queue.h>
 }
 #include "debug.h"
+
 
 /**
  * Saves a connection (equality is independent of order of endpoints)

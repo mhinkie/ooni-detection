@@ -3,7 +3,7 @@
 
 #include "queue/detect_ooni/expiring_queue.h"
 
-#define WHATSAPP_EXPIRY_TIME std::chrono::milliseconds {1000}
+#define WHATSAPP_EXPIRATION_TIME std::chrono::milliseconds {1000}
 #define WHATSAPP_DESTINATION_COUNT 3
 
 

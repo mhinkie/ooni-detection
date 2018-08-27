@@ -81,7 +81,7 @@ protected:
 
       TRACE("updated status");
 
-      set_status(address, status);
+      this->set_status(address, status);
     }
   }
 

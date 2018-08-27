@@ -89,12 +89,20 @@ int WhatsappQueue::handle_int_to_ext(
               WhatsappDestination &whatsapp_dest = dname_name.at(dns_query.dname());
 
               TRACE("found whatsapp name " << dns_query.dname());
+
+              // Add to set of already found destinations
+              this->add_queried_destination(whatsapp_dest, packet.src_addr());
             } catch(std::out_of_range e) {
               TRACE("not a whatsapp host: " << dns_query.dname());
             }
           }
+          ACCEPT_PACKET(queue, nfad);
+
+
+
         } else {
           TRACE("not a query!");
+          ACCEPT_PACKET(queue, nfad);
         }
       } catch(malformed_packet e) {
         // Not dns = just accept

@@ -64,7 +64,7 @@ int WhatsappQueue::handle_ext_to_int(
   struct nfq_data *nfad,
   Tins::IP &packet,
   TCP *tcp_pdu) {
-
+    
   //block for hosts that are not marked as probes
   if(this->is_probe(packet.dst_addr())) {
     TRACE("PROBE - ACCEPTING");
@@ -125,15 +125,13 @@ int WhatsappQueue::handle_int_to_ext(
             TRACE("not a whatsapp host: " << dns_query.dname());
           }
         }
-        ACCEPT_PACKET(queue, nfad);
       } else {
         TRACE("not a query!");
-        ACCEPT_PACKET(queue, nfad);
       }
     } catch(malformed_packet e) {
       // Not dns = just accept
-      ACCEPT_PACKET(queue, nfad);
     }
   }
+  ACCEPT_PACKET(queue, nfad);
 
 }

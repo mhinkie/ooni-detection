@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -x
 
 
 
@@ -152,7 +152,7 @@ WHATSAPP_RANGES=$( cat <<- END
 198.23.80.0/27
 208.43.115.192/27
 208.43.117.79/32
-208.43.122.128/2
+208.43.122.128/27
 END
 )
 
@@ -162,8 +162,9 @@ END
 # facebook address space: https://stackoverflow.com/questions/11164672/list-of-ip-space-used-by-facebook
 for src_range in ${WHATSAPP_RANGES}
 do
-  #echo "whatsapp range: $src_range"
+  echo "adding rule for range: $src_range"
   iptables -A FORWARD -s $src_range -j NFQUEUE --queue-num 0
+  iptables -L -n
 done
 
 # put dns requests in queue for detection purposes

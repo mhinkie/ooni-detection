@@ -82,6 +82,16 @@ public:
   }
 
   /**
+   * Returns true if a status is set for this ip.
+   * @param  address the adress to query the status for
+   * @return         true if status is set, false otherwise
+   */
+  bool is_status_set(Tins::IPv4Address address) {
+    READLOCK();
+    return !(ip_status.find(address) == ip_status.end());
+  }
+
+  /**
    * Returns a copy of the internal status information for all examined hosts.
    */
   std::unordered_map<Tins::IPv4Address, T> get_all_status() const {

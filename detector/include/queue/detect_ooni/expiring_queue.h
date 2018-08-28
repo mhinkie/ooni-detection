@@ -91,8 +91,12 @@ protected:
   * @return         true if host is a probe, false otherwise
   */
   bool is_probe(const Tins::IPv4Address &address) {
-    ProbeStatus<T> status = this->get_status(address);
-    return status.second == IS_PROBE;
+    if(this->is_status_set(address)) {
+      ProbeStatus<T> status = this->get_status(address);
+      return status.second == IS_PROBE;
+    } else {
+      return false;
+    }
   }
 public:
   /**

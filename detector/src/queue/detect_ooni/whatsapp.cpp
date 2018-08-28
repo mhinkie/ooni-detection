@@ -37,10 +37,42 @@ WhatsappQueue::~WhatsappQueue() {
 
 int WhatsappQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg, struct nfq_data *nfad) {
   TRACE("HANDLING PACKET");
-  // Only dns packets are received - this should not fail
+  // Only ip packets are received - this should not fail
   IP packet = parse_ip_packet(nfad);
 
-  return handle_int_to_ext(queue, nfmsg, nfad, packet);
+  // UDP Packets are treated as int_to_ext (dns requests)
+  // TCP Packets are treated as ext_to_int (whatsapp traffic)
+
+  UDP *udp_pdu = packet.find_pdu<UDP>();
+
+  if(udp_pdu != NULL) {
+    return handle_int_to_ext(queue, nfmsg, nfad, packet, udp_pdu);
+  } else {
+    TCP *tcp_pdu = packet.find_pdu<TCP>();
+    if(tcp_pdu != NULL) {
+      return handle_ext_to_int(queue, nfmsg, nfad, packet, tcp_pdu);
+    } else {
+      // Something else - accepting
+      ACCEPT_PACKET(queue, nfad);
+    }
+  }
+}
+
+int WhatsappQueue::handle_ext_to_int(
+  struct nfq_q_handle *queue,
+  struct nfgenmsg *nfmsg,
+  struct nfq_data *nfad,
+  Tins::IP &packet,
+  TCP *tcp_pdu) {
+
+  //block for hosts that are not marked as probes
+  if(this->is_probe(packet.dst_addr())) {
+    TRACE("PROBE - ACCEPTING");
+    ACCEPT_PACKET(queue, nfad);
+  } else {
+    TRACE("NOT A PROBE - DROPPING");
+    DROP_PACKET(queue, nfad);
+  }
 }
 
 /**
@@ -58,60 +90,50 @@ int WhatsappQueue::handle_int_to_ext(
   struct nfq_q_handle *queue,
   struct nfgenmsg *nfmsg,
   struct nfq_data *nfad,
-  IP &packet) {
+  IP &packet,
+  UDP *udp_pdu) {
 
   TRACE("int_to_ext");
-
-  UDP *udp_pdu = packet.find_pdu<UDP>();
-
-  if(udp_pdu != NULL) {
     // This is a dns request going out
-    RawPDU *inner_pdu = udp_pdu->find_pdu<RawPDU>();
-    if(inner_pdu != NULL) {
-      try {
-        DNS dns_pdu = inner_pdu->to<DNS>();
+  RawPDU *inner_pdu = udp_pdu->find_pdu<RawPDU>();
+  if(inner_pdu != NULL) {
+    try {
+      DNS dns_pdu = inner_pdu->to<DNS>();
 
-        // Converting succeeded
-        TRACE("inspecting dns");
-        // packet should be query
-        if(dns_pdu.type() == DNS::QUERY) {
-          std::vector<DNS::query> queries = dns_pdu.queries();
-          if(queries.size() == 0) {
-            TRACE("no queries found!");
-          } else {
-            if(queries.size() > 1) {
-              TRACE("more than one query found - inspecting only the first");
-            }
-
-            DNS::query dns_query = queries[0];
-            // lookup queried name to see if it is a facebook host
-            try {
-              WhatsappDestination &whatsapp_dest = dname_name.at(dns_query.dname());
-
-              TRACE("found whatsapp name " << dns_query.dname());
-
-              // Add to set of already found destinations
-              this->add_queried_destination(whatsapp_dest, packet.src_addr());
-            } catch(std::out_of_range e) {
-              TRACE("not a whatsapp host: " << dns_query.dname());
-            }
-          }
-          ACCEPT_PACKET(queue, nfad);
-
-
-
+      // Converting succeeded
+      TRACE("inspecting dns");
+      // packet should be query
+      if(dns_pdu.type() == DNS::QUERY) {
+        std::vector<DNS::query> queries = dns_pdu.queries();
+        if(queries.size() == 0) {
+          TRACE("no queries found!");
         } else {
-          TRACE("not a query!");
-          ACCEPT_PACKET(queue, nfad);
+          if(queries.size() > 1) {
+            TRACE("more than one query found - inspecting only the first");
+          }
+
+          DNS::query dns_query = queries[0];
+          // lookup queried name to see if it is a facebook host
+          try {
+            WhatsappDestination &whatsapp_dest = dname_name.at(dns_query.dname());
+
+            TRACE("found whatsapp name " << dns_query.dname());
+
+            // Add to set of already found destinations
+            this->add_queried_destination(whatsapp_dest, packet.src_addr());
+          } catch(std::out_of_range e) {
+            TRACE("not a whatsapp host: " << dns_query.dname());
+          }
         }
-      } catch(malformed_packet e) {
-        // Not dns = just accept
+        ACCEPT_PACKET(queue, nfad);
+      } else {
+        TRACE("not a query!");
         ACCEPT_PACKET(queue, nfad);
       }
+    } catch(malformed_packet e) {
+      // Not dns = just accept
+      ACCEPT_PACKET(queue, nfad);
     }
-  } else {
-    // everything else is accepted
-    ACCEPT_PACKET(queue, nfad);
   }
 
 }

@@ -11,6 +11,7 @@
 // Queues
 #include "queue/detect_ooni/facebook_messenger.h"
 #include "queue/detect_ooni/whatsapp.h"
+#include "queue/detect_ooni/telegram.h"
 #include "queue/accept_all.h"
 
 #define DEFAULT_POLICY NF_ACCEPT
@@ -109,6 +110,9 @@ PrintableQueue *get_queue(std::string test_name, int queue_number) {
   }
   if(test_name == std::string("whatsapp")) {
     return new WhatsappQueue(queue_number);
+  }
+  if(test_name == std::string("telegram")) {
+    return new TelegramQueue(queue_number);
   }
   throw std::runtime_error("no appropriate queue found for test-name: " + test_name);
 }

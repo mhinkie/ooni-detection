@@ -3,7 +3,7 @@
 
 #for this script, root login has to be enabled on ooni-detector-vm
 
-TEST_NAME=whatsapp
+TEST_NAME=telegram
 
 if [ -n "$1" ]; then
   TEST_NAME=$1

@@ -45,6 +45,10 @@ public:
       return _method;
     }
 
+    std::string *location() {
+      return _location;
+    }
+
     void write_serialization(uint8_t *data, uint32_t sz) {
       buffer.assign(data, data + sz);
     }

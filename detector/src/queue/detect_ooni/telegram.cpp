@@ -50,10 +50,22 @@ int TelegramQueue::handle_outgoing_http(
         if(inner_pdu != NULL) {
           // Convert to http
           HTTP http_req = inner_pdu->to<HTTP>();
+
+          // Accept if this is a post request to / - drop otherwise
+          if(http_req.method() == HTTP::POST && (*http_req.location()) == "/") {
+            TRACE("post to / found - accepting");
+            ACCEPT_PACKET(queue, nfad);
+          } else {
+            TRACE("other http found - dropping (method: " << http_req.method() << ", location: " << (*http_req.location()) << ")");
+            DROP_PACKET(queue, nfad);
+          }
         }
       } catch(malformed_packet p) {
         TRACE("Not a valid http request");
       }
+    } else {
+      // Accept other tcp to allow handshake
+      ACCEPT_PACKET(queue, nfad);
     }
   }
 

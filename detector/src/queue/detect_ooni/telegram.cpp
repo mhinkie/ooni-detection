@@ -105,40 +105,6 @@ int TelegramQueue::handle_outgoing_tls(
     TRACE("BLOCKING " << packet.dst_addr());
 
     DROP_PACKET(queue, nfad);
-    /*// Application data coming from client is always psh ack
-    // Parse packet
-    RawPDU *inner_pdu = tcp_pdu->find_pdu<RawPDU>();
-    if(inner_pdu != NULL) {
-      TLS tls_pdu = inner_pdu->to<TLS>(); // no try-catch needed converting to tls always succeeds
-      if(tls_pdu.content_type() == TLS::APPLICATION_DATA) {
-        // This is most probably a request
-        // only one request is allowed - if a connection is already present
-        // an a request has been sent for this connection, the packet is dropped
-
-        Connection conn { packet.src_addr(), tcp_pdu->sport(), packet.dst_addr(), tcp_pdu->dport()};
-        std::unordered_map<Connection,TelegramTLSStatus>::iterator entry = this->tls_connections.find(conn);
-
-        if(entry == this->tls_connections.end()) {
-          TRACE("connection not found - adding " << conn);
-          this->tls_connections[conn] = TelegramTLSStatus::RequestSent;
-          ACCEPT_PACKET(queue, nfad);
-        } else {
-          TRACE("connection found: " << entry->first << " - status: " << entry->second);
-          if(entry->second == TelegramTLSStatus::RequestSent) {
-            TRACE("allowed request already sent - denying now");
-            DROP_PACKET(queue, nfad);
-          } else {
-            TRACE("allowed request not sent (should not happen in this implementation) - denying from now on");
-            entry->second = TelegramTLSStatus::RequestSent;
-            ACCEPT_PACKET(queue, nfad);
-          }
-        }
-      }
-    } else {
-      // Something else for tcp -> allow it
-      TRACE("other psh ack found -> allowing");
-      ACCEPT_PACKET(queue, nfad);
-    }*/
   } else {
     TRACE("accepting other tls");
     ACCEPT_PACKET(queue, nfad);

@@ -45,7 +45,7 @@ private:
 protected:
   /**
   * Adds a destination to the list of queried destinations for the host.
-  * @param fb_server The destination to add.
+  * @param destination The destination to add.
   * @param address   the ip of the host querying the name.
   */
   void add_queried_destination(const T &destination, const Tins::IPv4Address &address) {

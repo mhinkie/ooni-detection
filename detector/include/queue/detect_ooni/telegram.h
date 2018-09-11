@@ -4,7 +4,11 @@
 #include "queue/detect_ooni/expiring_queue.h"
 #include "util.h"
 
-enum class TelegramDestination {v, eX, web};
+enum class TelegramDestination {
+  web, /* the dns query to web.telegram.org */
+  dc1_80, dc2_80, dc3_80, dc4_80, dc5_80, /* all dcs as specified in the ooni-test - for port 80 */
+  dc1_443, dc2_443, dc3_443, dc4_443, dc5_443 /* all dcs as specified in the ooni-test - for port 443 */
+};
 
 enum TelegramTLSStatus : uint8_t { Initializing = 0, RequestSent = 1 };
 

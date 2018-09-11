@@ -3,7 +3,12 @@
 #include "protocol/http.h"
 #include "util.h"
 
+#include <regex>
+
 using namespace Tins;
+
+const std::regex TELEGRAM_MASK(".*\\.telegram\\.org");
+const std::string TELEGRAM_WEB("web.telegram.org");
 
 TelegramQueue::TelegramQueue(int queue_num) : ExpiringQueue(queue_num, 2, std::chrono::milliseconds {1000}) {
 
@@ -24,15 +29,122 @@ int TelegramQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg
     } else if(tcp_pdu->dport() == 80) {
       // coming from inside going to telegram
       this->handle_outgoing_http(queue, nfmsg, nfad, packet, tcp_pdu);
+    } else if(tcp_pdu->dport() == 443) {
+      // coming from inside goin to telegram via tls
+      this->handle_outgoing_tls(queue, nfmsg, nfad, packet, tcp_pdu);
     } else {
       ACCEPT_PACKET(queue, nfad);
     }
   } else {
-    ACCEPT_PACKET(queue, nfad);
+    // UDP?
+    UDP *udp_pdu = packet.find_pdu<UDP>();
+    if(udp_pdu != NULL && udp_pdu->sport() == 53) {
+      // Dns reply
+      this->handle_incoming_dns(queue, nfmsg, nfad, packet, udp_pdu);
+    } else {
+      ACCEPT_PACKET(queue, nfad);
+    }
   }
 
   ACCEPT_PACKET(queue, nfad);
 }
+
+int TelegramQueue::handle_incoming_dns(
+  struct nfq_q_handle *queue,
+  struct nfgenmsg *nfmsg,
+  struct nfq_data *nfad,
+  Tins::IP &packet,
+  Tins::UDP *udp_pdu) {
+
+  try {
+    RawPDU *raw_pdu = udp_pdu->find_pdu<RawPDU>();
+    if(raw_pdu != NULL) {
+      DNS dns_pdu = raw_pdu->to<DNS>();
+
+      if(dns_pdu.type() == DNS::RESPONSE && dns_pdu.answers_count() > 0) {
+        std::vector<DNS::resource> answers = dns_pdu.answers();
+
+        for(auto const& answer : answers) {
+          if(answer.query_type() == DNS::A) {
+
+            // Deny all tls except for telegram web
+            if(answer.dname() != TELEGRAM_WEB && std::regex_match(answer.dname(), TELEGRAM_MASK)) {
+              // is telegram server
+              TRACE("got telegram server: " << answer.dname() << " - " << answer.data());
+              this->blocked_ips.insert(IPv4Address(answer.data()));
+
+              #ifdef ISTRACE
+              TRACE("Blocked IPs:");
+              for(auto const& ip : this->blocked_ips) {
+                TRACE(ip);
+              }
+              #endif
+            }
+          }
+        }
+      } else {
+        TRACE("no dns answers");
+      }
+    }
+  } catch(malformed_packet e) {
+    // Not dns = just accept
+  }
+
+  ACCEPT_PACKET(queue, nfad);
+}
+
+
+int TelegramQueue::handle_outgoing_tls(
+  struct nfq_q_handle *queue,
+  struct nfgenmsg *nfmsg,
+  struct nfq_data *nfad,
+  Tins::IP &packet,
+  Tins::TCP *tcp_pdu) {
+
+  if(this->blocked_ips.find(packet.dst_addr()) != this->blocked_ips.end()) {
+    TRACE("BLOCKING " << packet.dst_addr());
+
+    DROP_PACKET(queue, nfad);
+    /*// Application data coming from client is always psh ack
+    // Parse packet
+    RawPDU *inner_pdu = tcp_pdu->find_pdu<RawPDU>();
+    if(inner_pdu != NULL) {
+      TLS tls_pdu = inner_pdu->to<TLS>(); // no try-catch needed converting to tls always succeeds
+      if(tls_pdu.content_type() == TLS::APPLICATION_DATA) {
+        // This is most probably a request
+        // only one request is allowed - if a connection is already present
+        // an a request has been sent for this connection, the packet is dropped
+
+        Connection conn { packet.src_addr(), tcp_pdu->sport(), packet.dst_addr(), tcp_pdu->dport()};
+        std::unordered_map<Connection,TelegramTLSStatus>::iterator entry = this->tls_connections.find(conn);
+
+        if(entry == this->tls_connections.end()) {
+          TRACE("connection not found - adding " << conn);
+          this->tls_connections[conn] = TelegramTLSStatus::RequestSent;
+          ACCEPT_PACKET(queue, nfad);
+        } else {
+          TRACE("connection found: " << entry->first << " - status: " << entry->second);
+          if(entry->second == TelegramTLSStatus::RequestSent) {
+            TRACE("allowed request already sent - denying now");
+            DROP_PACKET(queue, nfad);
+          } else {
+            TRACE("allowed request not sent (should not happen in this implementation) - denying from now on");
+            entry->second = TelegramTLSStatus::RequestSent;
+            ACCEPT_PACKET(queue, nfad);
+          }
+        }
+      }
+    } else {
+      // Something else for tcp -> allow it
+      TRACE("other psh ack found -> allowing");
+      ACCEPT_PACKET(queue, nfad);
+    }*/
+  } else {
+    TRACE("accepting other tls");
+    ACCEPT_PACKET(queue, nfad);
+  }
+}
+
 
 int TelegramQueue::handle_outgoing_http(
   struct nfq_q_handle *queue,

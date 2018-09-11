@@ -21,3 +21,12 @@ do
   iptables -A FORWARD -p tcp -s $telegram_dc --sport 443 -j NFQUEUE --queue-num 0
   iptables -A FORWARD -p tcp -d $telegram_dc --dport 80 -j NFQUEUE --queue-num 0
 done
+
+
+# Check outgoing tls connections to web.telegram.org
+# only one application data packet going to web.telegram.org is allowed - all
+# following packets will be blocked
+iptables -A FORWARD -p tcp --dport 443 -j NFQUEUE --queue-num 0
+
+# all dns replies are checked for telegram servers
+iptables -A FORWARD -p udp --sport 53 -j NFQUEUE --queue-num 0

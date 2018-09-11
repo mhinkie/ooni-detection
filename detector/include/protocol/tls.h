@@ -17,7 +17,7 @@ private:
 public:
     static const PDU::PDUType pdu_flag;
 
-    enum ContentType {
+    enum ContentType : uint8_t {
       CHANGE_CHIPHER_SPEC = 20,
       ALERT = 21,
       HANDSHAKE = 22,

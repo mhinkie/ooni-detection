@@ -54,7 +54,8 @@ private:
 namespace std {
   template<> struct hash<Connection>{
       size_t operator()(const Connection &k) const {
-          return (size_t)(k.ip_a ^ (k.ip_b << 1) ^ (k.port_a << 2) ^ (k.port_b << 3));
+        // ips and ports are summed to create hash independent of direction
+        return (size_t)((k.ip_a + k.ip_b) ^ (k.port_a + k.port_b << 1));
       }
   };
 }

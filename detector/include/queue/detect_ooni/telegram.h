@@ -19,7 +19,6 @@ namespace std {
 
 class TelegramQueue : public ExpiringQueue<TelegramDestination> {
 private:
-  std::unordered_map<Connection,TelegramTLSStatus> tls_connections;
 
   std::unordered_set<Tins::IPv4Address> blocked_ips;
 

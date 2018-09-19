@@ -7,15 +7,24 @@
 #include <linux/netfilter.h>
 #include <thread>
 #include <chrono>
+#include <unordered_map>
 
 // Queues
 #include "queue/detect_ooni/facebook_messenger.h"
 #include "queue/detect_ooni/whatsapp.h"
 #include "queue/detect_ooni/telegram.h"
+#include "queue/detect_ooni/https_backend.h"
 #include "queue/accept_all.h"
 
 #define DEFAULT_POLICY NF_ACCEPT
 #define DEBUG_OUTPUT_INTERVAL_S 10
+
+std::unordered_map<std::string, std::function<PrintableQueue*(const int&)>> queue_generators = {
+  {"facebook_messenger", [](const int &queue_num){ return new FBMessengerQueue(queue_num); }},
+  {"whatsapp", [](const int &queue_num){ return new WhatsappQueue(queue_num); }},
+  {"telegram", [](const int &queue_num){ return new TelegramQueue(queue_num); }},
+  {"https_backend", [](const int &queue_num){ return new HTTPSBackendQueue(queue_num); }},
+};
 
 /**
  * netfilter queue callback function. Function is called after a packet is processed
@@ -105,16 +114,11 @@ void NFQueue::start() {
  * @return           the queue which schould be started
  */
 PrintableQueue *get_queue(std::string test_name, int queue_number) {
-  if(test_name == std::string("facebook_messenger")) {
-    return new FBMessengerQueue(queue_number);
+  try {
+    return (queue_generators.at(test_name))(queue_number);
+  } catch(std::out_of_range e) {
+    throw std::runtime_error("no appropriate queue found for test-name: " + test_name);
   }
-  if(test_name == std::string("whatsapp")) {
-    return new WhatsappQueue(queue_number);
-  }
-  if(test_name == std::string("telegram")) {
-    return new TelegramQueue(queue_number);
-  }
-  throw std::runtime_error("no appropriate queue found for test-name: " + test_name);
 }
 
 void debug_loop(PrintableQueue *queue) {

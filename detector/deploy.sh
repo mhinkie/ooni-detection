@@ -3,7 +3,7 @@
 
 #for this script, root login has to be enabled on ooni-detector-vm
 
-TEST_NAME=telegram
+TEST_NAME=https_backend
 
 if [ -n "$1" ]; then
   TEST_NAME=$1

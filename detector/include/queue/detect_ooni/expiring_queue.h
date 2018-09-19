@@ -33,7 +33,7 @@ private:
       out << "PROBE";
     } else {
       if(status.second + expiry_time < current) {
-        out << "Query time ran out (after " << status.first.size() << " queried names)";
+        out << "Query time ran out (after " << status.first.size() << " queried destinations)";
       } else {
         std::chrono::milliseconds time_elapsed = current - status.second;
         out << status.first.size() << " destinations already queried " << time_elapsed.count() << "ms ago";

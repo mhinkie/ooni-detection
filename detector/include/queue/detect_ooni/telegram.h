@@ -12,7 +12,7 @@ enum class TelegramDestination {
 
 enum TelegramTLSStatus : uint8_t { Initializing = 0, RequestSent = 1 };
 
-// Hash for FBName
+// Hash for TelegramDestination
 namespace std {
   template<> struct hash<TelegramDestination> {
       size_t operator()(const TelegramDestination &name) const {

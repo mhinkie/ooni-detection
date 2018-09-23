@@ -80,9 +80,11 @@ int HTTPSBackendQueue::handle_outgoing_tcp(struct nfq_q_handle *queue, struct nf
   if(tcp_pdu->flags() == TCP::SYN) {
     if(this->bouncer_address && packet.dst_addr() == *this->bouncer_address) {
       TRACE("bouncer tls");
+      this->add_queried_destination(BackendStep::tcp_bouncer, packet.src_addr());
     } else {
-      if(this->collector_addresses.find(packet.dst_addr()) != this->collector_address.end()) {
+      if(this->collector_addresses.find(packet.dst_addr()) != this->collector_addresses.end()) {
         TRACE("collector tls");
+        this->add_queried_destination(BackendStep::tcp_collector, packet.src_addr());
       }
     }
   }

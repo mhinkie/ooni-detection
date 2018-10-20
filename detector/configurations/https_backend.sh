@@ -1,12 +1,17 @@
 #!/bin/sh
 
+QUEUE_NUM=0
+QUEUE_NAME=https_backend
+
+# first param = queue num
+if [ -n "$1" ]; then
+  QUEUE_NUM=$1
+fi
 
 echo "https-backend setup"
 
-iptables --flush
-
 # check all dns replies
-iptables -A FORWARD -p udp --sport 53 -j NFQUEUE --queue-num 0
+iptables -A ${QUEUE_NAME} -p udp --sport 53 -j NFQUEUE --queue-num ${QUEUE_NUM}
 
 # check all outgoing tls
-iptables -A FORWARD -p tcp --dport 443 -j NFQUEUE --queue-num 0
+iptables -A ${QUEUE_NAME} -p tcp --dport 443 -j NFQUEUE --queue-num ${QUEUE_NUM}

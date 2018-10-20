@@ -1,7 +1,45 @@
 #include "queue/detect_ooni/whatsapp.h"
 #include "util.h"
 
+#include <regex>
+
 using namespace Tins;
+
+
+const std::regex WHATSAPP_MASK(".*\\.whatsapp\\.net");
+
+// ips that will be blocked regardless if a dns response for them is found
+const std::string KNOWN_BLOCKS[] = {
+  "31.13.64.51",
+  "31.13.65.49",
+  "31.13.66.49",
+  "31.13.67.51",
+  "31.13.68.52",
+  "31.13.69.240",
+  "31.13.70.49",
+  "31.13.71.49",
+  "31.13.72.52",
+  "31.13.73.49",
+  "31.13.74.49",
+  "31.13.75.52",
+  "31.13.76.81",
+  "31.13.77.49",
+  "31.13.78.53",
+  "31.13.80.53",
+  "31.13.81.53",
+  "31.13.82.51",
+  "31.13.83.51",
+  "31.13.84.51",
+  "31.13.85.51",
+  "31.13.86.51",
+  "31.13.87.51",
+  "31.13.88.49",
+  "31.13.90.51",
+  "31.13.91.51",
+  "31.13.92.52",
+  "31.13.93.51",
+  "31.13.94.52"
+};
 
 /** Associates whatsapp domains with WhatsappDestination values */
 static std::unordered_map<std::string, WhatsappDestination> dname_name = {
@@ -27,7 +65,9 @@ static std::unordered_map<std::string, WhatsappDestination> dname_name = {
 };
 
 WhatsappQueue::WhatsappQueue(int queue_num) : ExpiringQueue(queue_num, WHATSAPP_DESTINATION_COUNT, WHATSAPP_EXPIRATION_TIME) {
-
+  for (const std::string &block : KNOWN_BLOCKS) {
+    this->blocked_ips.insert(IPv4Address(block));
+  }
 }
 
 WhatsappQueue::~WhatsappQueue() {
@@ -46,7 +86,11 @@ int WhatsappQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg
   UDP *udp_pdu = packet.find_pdu<UDP>();
 
   if(udp_pdu != NULL) {
-    return handle_int_to_ext(queue, nfmsg, nfad, packet, udp_pdu);
+    if(udp_pdu->dport() == 53) {
+      return handle_int_to_ext(queue, nfmsg, nfad, packet, udp_pdu);
+    } else {
+      return handle_dns_reply(queue, nfmsg, nfad, packet, udp_pdu);
+    }
   } else {
     TCP *tcp_pdu = packet.find_pdu<TCP>();
     if(tcp_pdu != NULL) {
@@ -58,20 +102,67 @@ int WhatsappQueue::handle_pkt(struct nfq_q_handle *queue, struct nfgenmsg *nfmsg
   }
 }
 
+int WhatsappQueue::handle_dns_reply(
+  struct nfq_q_handle *queue,
+  struct nfgenmsg *nfmsg,
+  struct nfq_data *nfad,
+  IP &packet,
+  UDP *udp_pdu) {
+  TRACE("HANDLING DNS");
+
+  RawPDU *inner_pdu = udp_pdu->find_pdu<RawPDU>();
+  if(inner_pdu != NULL) {
+    try {
+      DNS dns_pdu = inner_pdu->to<DNS>();
+
+      // packet should be response
+      if(dns_pdu.type() == DNS::RESPONSE && dns_pdu.answers_count() > 0) {
+        std::vector<DNS::resource> answers = dns_pdu.answers();
+
+        for(auto const& answer : answers) {
+          if(answer.query_type() == DNS::A) {
+            if(std::regex_match(answer.dname(), WHATSAPP_MASK)) {
+              // is whatsapp server
+              TRACE("got whatsapp server: " << answer.dname() << " - " << answer.data());
+              // add to blocklist
+              this->blocked_ips.insert(IPv4Address(answer.data()));
+
+              #ifdef ISTRACE
+              TRACE("Blocked IPs:");
+              for(auto const& ip : this->blocked_ips) {
+                TRACE(ip);
+              }
+              #endif
+            }
+          }
+        }
+      }
+    } catch(malformed_packet e) {
+      // Not dns = just accept
+    }
+  }
+
+
+  ACCEPT_PACKET(queue, nfad);
+}
+
 int WhatsappQueue::handle_ext_to_int(
   struct nfq_q_handle *queue,
   struct nfgenmsg *nfmsg,
   struct nfq_data *nfad,
   Tins::IP &packet,
   TCP *tcp_pdu) {
-    
-  //block for hosts that are not marked as probes
-  if(this->is_probe(packet.dst_addr())) {
-    TRACE("PROBE - ACCEPTING");
-    ACCEPT_PACKET(queue, nfad);
-  } else {
-    TRACE("NOT A PROBE - DROPPING");
-    DROP_PACKET(queue, nfad);
+
+  // only process packets that could be blocked
+  if(this->blocked_ips.find(packet.src_addr()) != this->blocked_ips.end()) {
+    //block for hosts that are not marked as probes
+    if(this->is_probe(packet.dst_addr())) {
+      TRACE("PROBE - ACCEPTING");
+      ACCEPT_PACKET(queue, nfad);
+    } else {
+      TRACE("NOT A PROBE - DROPPING");
+      DROP_PACKET(queue, nfad);
+    }
   }
 }
 

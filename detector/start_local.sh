@@ -7,14 +7,11 @@ killall det
 echo
 echo
 
-cd /home/oonid/deploy/nfqueue_detector/
 
 echo "Configuring interfaces..."
 #configure interfaces
-vm_config/reset_config.sh
-vm_config/internal_config.sh
-vm_config/external_config.sh
-vm_config/router_config.sh
+./host_config/reset_host.sh
+./host_config/mobile_router_nat.sh
 echo
 echo
 

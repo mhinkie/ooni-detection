@@ -31,6 +31,8 @@ namespace std {
 class WhatsappQueue : public ExpiringQueue<WhatsappDestination> {
 private:
 
+    std::unordered_set<Tins::IPv4Address> blocked_ips;
+
   /**
    * Handles packets coming from the inside network and going to a whatsapp server.
    * <b>This function should only receive DNS-request going out.</b>
@@ -65,6 +67,23 @@ private:
     struct nfq_data *nfad,
     Tins::IP &packet,
     Tins::TCP *tcp_pdu);
+
+  /**
+   * Handles dns replies and checks for whatsapp hosts.
+   * adds all found addresses to block list
+   * @param  queue   [description]
+   * @param  nfmsg   [description]
+   * @param  nfad    [description]
+   * @param  packet  [description]
+   * @param  udp_pdu [description]
+   * @return         [description]
+   */
+  int handle_dns_reply(
+    struct nfq_q_handle *queue,
+    struct nfgenmsg *nfmsg,
+    struct nfq_data *nfad,
+    Tins::IP &packet,
+    Tins::UDP *udp_pdu);
 
 public:
 

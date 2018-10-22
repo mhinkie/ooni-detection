@@ -25,6 +25,7 @@ for telegram_dc in ${TELEGRAM_DCS}
 do
   iptables -A ${QUEUE_NAME} -p tcp -s $telegram_dc --sport 443 -j NFQUEUE --queue-num ${QUEUE_NUM}
   iptables -A ${QUEUE_NAME} -p tcp -d $telegram_dc --dport 80 -j NFQUEUE --queue-num ${QUEUE_NUM}
+  iptables -A ${QUEUE_NAME} -p tcp -s $telegram_dc --sport 5222 -j DROP
 done
 
 

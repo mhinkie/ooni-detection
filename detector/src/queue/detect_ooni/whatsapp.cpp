@@ -163,6 +163,8 @@ int WhatsappQueue::handle_ext_to_int(
       TRACE("NOT A PROBE - DROPPING");
       DROP_PACKET(queue, nfad);
     }
+  } else {
+    ACCEPT_PACKET(queue, nfad);
   }
 }
 

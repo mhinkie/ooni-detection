@@ -22,8 +22,8 @@ Therefore OONI will think no blocking or manipulation is performed, while the ap
 
 ## requires:
  - netfilter_queue (https://netfilter.org/projects/libnetfilter_queue/), and nfnetlink (https://www.netfilter.org/projects/libnfnetlink/)
-  - Enables user-space programs to inspect routed packets.
+   * Enables user-space programs to inspect routed packets.
  - Boost (boost_thread, boost_system)
  - cmake
  - Tins (http://libtins.github.io/)
-  - used for packet inspection utilities
+   * used for packet inspection utilities

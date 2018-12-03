@@ -19,3 +19,11 @@ The detector tries to detect packets associated with OONI on the network and giv
 which hosts were identified as OONI probes. It also blocks the targeted application in a way that 
 is not noticable by the examined OONI probe version.
 Therefore OONI will think no blocking or manipulation is performed, while the application is still unusable.
+
+## requires:
+ - netfilter_queue (https://netfilter.org/projects/libnetfilter_queue/), and nfnetlink (https://www.netfilter.org/projects/libnfnetlink/)
+  - Enables user-space programs to inspect routed packets.
+ - Boost (boost_thread, boost_system)
+ - cmake
+ - Tins (http://libtins.github.io/)
+  - used for packet inspection utilities
